@@ -1,0 +1,12 @@
+{
+  "files_indexed": 7,
+  "pages_loaded": 3526,
+  "chunks_total_after_filter": 4959,
+  "chunks_added": 0,
+  "chunks_skipped_existing": 4959,
+  "chunks_dropped": 1631,
+  "chunk_size": 900,
+  "chunk_overlap": 150,
+  "embedding_model": "all-MiniLM-L6-v2",
+  "vectorstore_dir": "vectorstore"
+}

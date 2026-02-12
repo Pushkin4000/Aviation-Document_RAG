@@ -1,0 +1,202 @@
+[
+  {
+    "question": "What is QNH in altimetry?",
+    "type": "factual"
+  },
+  {
+    "question": "What is QFE in altimetry?",
+    "type": "factual"
+  },
+  {
+    "question": "What does ISA stand for in aviation meteorology?",
+    "type": "factual"
+  },
+  {
+    "question": "How is dew point defined?",
+    "type": "factual"
+  },
+  {
+    "question": "What is a cold front?",
+    "type": "factual"
+  },
+  {
+    "question": "What does VOR stand for?",
+    "type": "factual"
+  },
+  {
+    "question": "What does DME primarily measure?",
+    "type": "factual"
+  },
+  {
+    "question": "What is the function of the altimeter subscale setting?",
+    "type": "factual"
+  },
+  {
+    "question": "What is true airspeed (TAS)?",
+    "type": "factual"
+  },
+  {
+    "question": "What is indicated airspeed (IAS)?",
+    "type": "factual"
+  },
+  {
+    "question": "What is a flight level?",
+    "type": "factual"
+  },
+  {
+    "question": "Which publication contains permanent aeronautical information for pilots?",
+    "type": "factual"
+  },
+  {
+    "question": "What is the purpose of a NOTAM?",
+    "type": "factual"
+  },
+  {
+    "question": "What is the function of the pitot tube?",
+    "type": "factual"
+  },
+  {
+    "question": "What is static pressure in relation to aircraft instruments?",
+    "type": "factual"
+  },
+  {
+    "question": "What does RAIM stand for in GNSS operations?",
+    "type": "factual"
+  },
+  {
+    "question": "What is the point of no return (PNR) in flight planning?",
+    "type": "factual"
+  },
+  {
+    "question": "What is contingency fuel?",
+    "type": "factual"
+  },
+  {
+    "question": "What is the center of gravity in mass and balance?",
+    "type": "factual"
+  },
+  {
+    "question": "What is load factor in flight mechanics?",
+    "type": "factual"
+  },
+  {
+    "question": "If the pitot tube is blocked but the static source remains clear, how does the airspeed indicator behave?",
+    "type": "applied"
+  },
+  {
+    "question": "If the static source is blocked and the pitot source is clear, what errors appear on the altimeter and VSI?",
+    "type": "applied"
+  },
+  {
+    "question": "What is the altimetry risk when flying from high pressure to low pressure without resetting the subscale?",
+    "type": "applied"
+  },
+  {
+    "question": "How does a higher-than-ISA temperature affect takeoff distance planning?",
+    "type": "applied"
+  },
+  {
+    "question": "What handling consequence is expected if the aircraft center of gravity moves beyond the aft limit?",
+    "type": "applied"
+  },
+  {
+    "question": "How should fuel planning change when destination weather is close to alternate minima?",
+    "type": "applied"
+  },
+  {
+    "question": "How should a pilot apply transition altitude and standard setting during climb?",
+    "type": "applied"
+  },
+  {
+    "question": "What immediate planning impact does a strong forecast headwind have on PNR calculations?",
+    "type": "applied"
+  },
+  {
+    "question": "What is the correct action if visual reference is not established at MDA or DA?",
+    "type": "applied"
+  },
+  {
+    "question": "How does a significant tailwind on final approach affect landing distance requirements?",
+    "type": "applied"
+  },
+  {
+    "question": "If a NOTAM closes your planned destination runway, what should be updated in the flight plan?",
+    "type": "applied"
+  },
+  {
+    "question": "When a VOR radial indication and DME distance trend are inconsistent, what navigation cross-check should be performed?",
+    "type": "applied"
+  },
+  {
+    "question": "How should pressure altitude be adjusted when QNH differs from standard pressure?",
+    "type": "applied"
+  },
+  {
+    "question": "What preflight decision is required when expected icing exists and pitot heat is inoperative?",
+    "type": "applied"
+  },
+  {
+    "question": "If cumulative delays reduce your fuel reserve near legal minimums, what operational decision should be taken?",
+    "type": "applied"
+  },
+  {
+    "question": "How should a pilot react to cumulonimbus cells building directly on the planned route?",
+    "type": "applied"
+  },
+  {
+    "question": "What communication and clearance considerations apply before entering controlled Class C airspace?",
+    "type": "applied"
+  },
+  {
+    "question": "How does loss of one GNSS satellite affect 3D position solution capability?",
+    "type": "applied"
+  },
+  {
+    "question": "What is the operational implication if calculated takeoff mass exceeds performance-limited mass?",
+    "type": "applied"
+  },
+  {
+    "question": "If destination weather drops below landing minima en route, how should alternate strategy be applied?",
+    "type": "applied"
+  },
+  {
+    "question": "Why does true airspeed increase with altitude when indicated airspeed is held constant?",
+    "type": "reasoning"
+  },
+  {
+    "question": "Why is a small temperature-dew-point spread associated with greater fog risk?",
+    "type": "reasoning"
+  },
+  {
+    "question": "Why can an aft center of gravity improve cruise efficiency but reduce longitudinal stability?",
+    "type": "reasoning"
+  },
+  {
+    "question": "Why does SSR generally provide better identification and tracking capability than primary radar?",
+    "type": "reasoning"
+  },
+  {
+    "question": "How do pressure-gradient force and Coriolis force jointly determine large-scale wind direction?",
+    "type": "reasoning"
+  },
+  {
+    "question": "Why are transition altitude and transition level procedures necessary in multi-aircraft operations?",
+    "type": "reasoning"
+  },
+  {
+    "question": "What is the trade-off between carrying extra fuel and carrying payload in commercial planning?",
+    "type": "reasoning"
+  },
+  {
+    "question": "Why can a temperature inversion degrade visibility and affect low-level operations?",
+    "type": "reasoning"
+  },
+  {
+    "question": "Why might Mercator and Lambert charts produce different practical advantages for route planning?",
+    "type": "reasoning"
+  },
+  {
+    "question": "When reserves are shrinking and winds are stronger than forecast, why can an early diversion be safer than continuing?",
+    "type": "reasoning"
+  }
+]
