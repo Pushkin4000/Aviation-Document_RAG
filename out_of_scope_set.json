@@ -1,0 +1,17 @@
+[
+  {"question": "What is the best recipe for chocolate cake?", "type": "out_of_scope"},
+  {"question": "Who won the 2018 FIFA World Cup?", "type": "out_of_scope"},
+  {"question": "What is the capital city of Australia?", "type": "out_of_scope"},
+  {"question": "How do I reset my email password?", "type": "out_of_scope"},
+  {"question": "What is the current price of Bitcoin?", "type": "out_of_scope"},
+  {"question": "Write me a Python function to sort a list.", "type": "out_of_scope"},
+  {"question": "What are the symptoms of influenza?", "type": "out_of_scope"},
+  {"question": "Who is the chief executive of this airline?", "type": "out_of_scope"},
+  {"question": "What is the landing fee at Heathrow this year?", "type": "out_of_scope"},
+  {"question": "What was the cause of the 2009 Air France 447 accident?", "type": "out_of_scope"},
+  {"question": "How much does a Boeing 787 cost to purchase?", "type": "out_of_scope"},
+  {"question": "What is the maintenance schedule for my specific aircraft registration?", "type": "out_of_scope"},
+  {"question": "What is today's weather at my departure airport?", "type": "out_of_scope"},
+  {"question": "Which airline has the best on-time performance?", "type": "out_of_scope"},
+  {"question": "What is the square root of 144?", "type": "out_of_scope"}
+]

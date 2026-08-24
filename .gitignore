@@ -19,3 +19,4 @@ data/
 
 # Local artifacts
 .eval_cache/
+ground_truth_worksheet.txt
