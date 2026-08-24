@@ -329,7 +329,12 @@ API key and no 527 MB corpus.
 - `test_scoring.py` — tokenisation, overlap, noise penalty, confidence bounds.
 - `test_grounding.py` — grounded/ungrounded pairs; the refusal string is always
   considered grounded.
-- `test_routing.py` — heuristic classification boundaries.
+- `test_routing.py` — heuristic classification boundaries. Note: the inherited
+  heuristic under-classifies plain causal questions — a bare "Why ...?" scores
+  0.28 against a 0.32 threshold and routes as `simple`. The weights are carried
+  over unchanged for comparability, so this is covered by a characterisation
+  test rather than fixed here. Impact is currently nil because
+  `RAG_MODEL_ROUTING_ENABLED` defaults to 0, making the route metadata only.
 - `test_retrieval.py` — hybrid merge, ordering, and the fixed candidate gate;
   asserts the no-evidence refusal path is now reachable.
 - `test_generation.py` — Groq path with a mocked client; asserts a model refusal
