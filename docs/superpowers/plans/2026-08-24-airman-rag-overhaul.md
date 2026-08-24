@@ -1521,9 +1521,12 @@ def test_returns_unavailable_when_nothing_matches():
 
 
 def test_clean_answer_truncates_to_max_words():
-    settings = Settings(_env_file=None, answer_max_words=5)
-    out = clean_answer_text("one two three four five six seven eight", settings)
-    assert len(out.rstrip(".").split()) == 5
+    # answer_max_words has ge=10 in app/config.py, so 10 is the smallest legal limit.
+    settings = Settings(_env_file=None, answer_max_words=10)
+    out = clean_answer_text(
+        "one two three four five six seven eight nine ten eleven twelve", settings
+    )
+    assert len(out.rstrip(".").split()) == 10
 
 
 def test_clean_answer_terminates_sentence():
