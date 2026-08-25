@@ -290,7 +290,7 @@ from `report.md`):
 | Hallucination rate (of answered) | 0.0% — **not meaningful**, see below |
 | Refusal recall | 13/15 (86.7%) |
 | Refusal precision (of 25 refusals actually issued) | 14/25 (56.0%) |
-| Latency p50 / p95 | ~230 ms / ~440 ms |
+| Latency p50 / p95 | ~228 ms / ~476 ms |
 
 **On the 100%/0% faithfulness figures — read this before trusting them.** An
 earlier version of this evaluation compared each answer against the same
