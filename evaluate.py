@@ -286,6 +286,21 @@ the reference vocabulary. Faithfulness carries the same "structural" caveat
 under extractive generation (below); correctness does not have a structural
 excuse, only this measurement-fidelity one.
 
+**On the grounding gate (CRIT-1).** `is_grounded`'s default thresholds
+(similarity 0.65, token overlap 0.58) were calibrated for verbatim
+extraction and reject most correct paraphrases -- only 10/41 (24.4%) of
+this evaluation set's own reference answers pass them. Since
+`RAG_GENERATION_MODE` defaults to `groq`, that would have refused most
+correct Groq answers in production; this was invisible to prior review
+because the configured `GROQ_API_KEY` returns HTTP 401, so the Groq path
+has never run end-to-end. A second, looser pair now applies only to
+answers actually produced by Groq (similarity 0.45, overlap 0.58),
+empirically chosen to admit 32/41 (78.0%) of the reference answers while
+still rejecting invented and off-topic text. This run's own generation
+path (see the section below) is extractive, so it exercises the strict
+pair only -- the abstractive pair is not exercised by this report and has
+not been validated against real Groq output.
+
 ## Dataset
 - In-scope questions: {total}
 - Answered: {n_answered}

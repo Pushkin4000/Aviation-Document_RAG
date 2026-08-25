@@ -57,10 +57,19 @@
   {
     "question": "How is dew point defined?",
     "type": "factual",
-    "expected_answer": null,
-    "expected_sources": [],
-    "key_facts": [],
-    "unanswerable": true
+    "expected_answer": "Dew point is the temperature to which air must be cooled, at constant pressure, for saturation to occur (i.e. for the air to become fully saturated with water vapour and condensation to begin).",
+    "expected_sources": [
+      {
+        "source": "Meteorology full book.pdf",
+        "page": 87
+      }
+    ],
+    "key_facts": [
+      "temperature to which air must be cooled",
+      "constant pressure",
+      "for saturation to occur"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What is a cold front?",
@@ -802,10 +811,23 @@
   {
     "question": "Why can a temperature inversion degrade visibility and affect low-level operations?",
     "type": "reasoning",
-    "expected_answer": null,
-    "expected_sources": [],
-    "key_facts": [],
-    "unanswerable": true
+    "expected_answer": "Poor visibility is usually associated with stable conditions, including inversions (along with anticyclones, cols, and light winds), because a temperature inversion suppresses vertical mixing near the surface, trapping moisture, smoke, and other particles in a shallow layer and favouring the formation of fog, mist, or haze that reduces visibility for low-level operations.",
+    "expected_sources": [
+      {
+        "source": "Meteorology full book.pdf",
+        "page": 273
+      },
+      {
+        "source": "Meteorology full book.pdf",
+        "page": 274
+      }
+    ],
+    "key_facts": [
+      "poor visibility associated with inversions",
+      "stable conditions",
+      "fog forms below an inversion"
+    ],
+    "unanswerable": false
   },
   {
     "question": "Why might Mercator and Lambert charts produce different practical advantages for route planning?",
@@ -831,9 +853,22 @@
   {
     "question": "When reserves are shrinking and winds are stronger than forecast, why can an early diversion be safer than continuing?",
     "type": "reasoning",
-    "expected_answer": null,
-    "expected_sources": [],
-    "key_facts": [],
-    "unanswerable": true
+    "expected_answer": "Stronger-than-forecast winds burn into the planned fuel margin faster than expected, so the longer a pilot continues, the more of the final reserve gets eaten into. The fuel policy requires landing with not less than final reserve fuel, so a commander who diverts while reserves are still adequate keeps that decision available and controlled; continuing and waiting to see how bad things get risks reaching the point where the remaining fuel is no longer enough to divert safely and still land with the required reserve intact.",
+    "expected_sources": [
+      {
+        "source": "7-Flight-Planning-and-Monitoring-2014.pdf",
+        "page": 36
+      },
+      {
+        "source": "7-Flight-Planning-and-Monitoring-2014.pdf",
+        "page": 40
+      }
+    ],
+    "key_facts": [
+      "stronger winds erode the fuel margin faster than planned",
+      "must land with not less than final reserve fuel",
+      "diverting later risks having too little fuel to divert safely"
+    ],
+    "unanswerable": false
   }
 ]

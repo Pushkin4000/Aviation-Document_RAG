@@ -18,6 +18,34 @@ answer against the chunks it had been copied from, which cannot fail and
 reported 100% faithfulness and 0% hallucination. **Those figures were an
 artifact of the measurement and are not comparable to the numbers below.**
 
+**On correctness under the lexical fallback.** `judge_method` below tells you
+whether each verdict came from an LLM judge or the lexical fallback
+(`correct = fact_recall >= 0.5 or similarity >= 0.72`, where similarity is a
+token-set ratio). That fallback can score a short answer highly when it is a
+near token-subset of a long reference, even if it does not actually answer
+the question — this report's own detail rows include `correct=True` verdicts
+on `key-fact recall 0.00`. Treat correctness under the lexical fallback as a
+**floor, not a precise measure**: it is not more forgiving than the true
+answer quality, but it can occasionally admit an answer that merely overlaps
+the reference vocabulary. Faithfulness carries the same "structural" caveat
+under extractive generation (below); correctness does not have a structural
+excuse, only this measurement-fidelity one.
+
+**On the grounding gate (CRIT-1).** `is_grounded`'s default thresholds
+(similarity 0.65, token overlap 0.58) were calibrated for verbatim
+extraction and reject most correct paraphrases -- only 10/41 (24.4%) of
+this evaluation set's own reference answers pass them. Since
+`RAG_GENERATION_MODE` defaults to `groq`, that would have refused most
+correct Groq answers in production; this was invisible to prior review
+because the configured `GROQ_API_KEY` returns HTTP 401, so the Groq path
+has never run end-to-end. A second, looser pair now applies only to
+answers actually produced by Groq (similarity 0.45, overlap 0.58),
+empirically chosen to admit 32/41 (78.0%) of the reference answers while
+still rejecting invented and off-topic text. This run's own generation
+path (see the section below) is extractive, so it exercises the strict
+pair only -- the abstractive pair is not exercised by this report and has
+not been validated against real Groq output.
+
 ## Dataset
 - In-scope questions: 50
 - Answered: 38
@@ -25,36 +53,42 @@ artifact of the measurement and are not comparable to the numbers below.**
 - Out-of-scope questions (must be refused): 15
 
 ## Metrics
-- Retrieval recall@k: 68.0%
-- Answer correctness: 20.0%
+- Retrieval recall@k (all 50 in-scope questions, 6 of
+  which are unanswerable and can never hit): 68.0%
+- Retrieval recall@k (answerable subset only, 44 questions —
+  the figure that actually measures retrieval, since unanswerable questions
+  have no expected source to hit): 77.3%
+- Answer correctness: 18.0% — see the lexical-fallback caveat above
 - Faithfulness (of answered): 100.0%  — NOT MEANINGFUL under extractive generation (see below)
 - Hallucination rate (of answered): 0.0%  — NOT MEANINGFUL under extractive generation (see below)
 - Refusal recall (out-of-scope correctly refused): 13/15 (86.7%)
-- Refusal precision (refusals that were correct): 55.6%
-- Latency p50 / p95: 182 ms / 389 ms
+- Refusal precision (of all refusals issued -- 12 in-scope +
+  13 out-of-scope -- how many were correct): 14/25 (56.0%)
+- Latency p50 / p95: 228 ms / 476 ms
 
 ### Why faithfulness reads 100.0% here
 
-This run used `RAG_GENERATION_MODE=extractive`, so every answer is a verbatim
-span copied out of its cited chunk. Checking such an answer against that same
-chunk cannot fail — support is ~1.00 by construction — so the faithfulness and
-hallucination figures above are structural, not earned, and must not be read
-as evidence the system does not hallucinate.
+Every answered question in this run was generated extractively. An extractive answer is, by construction, a verbatim span copied
+out of its cited chunk. Checking such an answer against that same chunk
+cannot fail — support is ~1.00 by construction — so the faithfulness and
+hallucination figures above are structural for those rows, not earned, and
+must not be read as evidence the system does not hallucinate.
 
 Row 28 ("What immediate planning impact does a strong forecast headwind have on PNR calculations?") shows the failure mode this leaves standing: the answer is a faithful, verbatim quote from its cited chunk (`faithful=True`) but does not answer the question (`correct=False`, key-fact recall 0.00, similarity to reference 0.28, token support from cited context 1.00). A faithful quote is not the same thing as a correct answer — closing that gap is what the correctness metric is for.
 
-The metric becomes informative only under `RAG_GENERATION_MODE=groq`, where the
-model can introduce claims absent from the retrieved context. That path is
-implemented and unit-tested but was not exercised in this run: the configured
-GROQ_API_KEY is rejected with HTTP 401, so generation fell back to extraction
-and every judge verdict used the lexical fallback.
+The metric becomes informative only for rows generated via Groq, where the
+model is free to introduce claims absent from the retrieved context. That
+path is implemented and unit-tested but has never been exercised
+end-to-end in this environment: the configured GROQ_API_KEY is rejected
+with HTTP 401, so every Groq call falls back to extraction and every judge
+verdict used the lexical fallback.
 
 The metrics that do carry signal for this run are **retrieval recall@k**,
 **answer correctness**, and the **refusal** figures.
 
 ## Metrics by Question Type
 - **applied** (n=20): retrieval 40.0%, correct 15.0%, faithful 100.0%
-- **factual** (n=20): retrieval 90.0%, correct 30.0%, faithful 100.0%
+- **factual** (n=20): retrieval 90.0%, correct 25.0%, faithful 100.0%
 - **reasoning** (n=10): retrieval 80.0%, correct 10.0%, faithful 100.0%
 
 ## 5 Best Answers

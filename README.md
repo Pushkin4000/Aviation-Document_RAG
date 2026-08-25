@@ -229,37 +229,68 @@ index's actual `lexical_entries` count reported by `/health`.
 **Ground truth.** All 50 in-scope questions were authored (question, expected
 answer, expected source document/page, key facts) against the actual indexed
 corpus by retrieving and reading the relevant pages, not generated
-speculatively. 9 of the 50 are deliberately marked `unanswerable: true`
+speculatively. 6 of the 50 are deliberately marked `unanswerable: true`
 because the corpus genuinely does not contain an answer — the system is
 expected to refuse those. `out_of_scope_set.json` is a separate 15-question
 set (e.g. "What is the best recipe for chocolate cake?") that is entirely
 off-topic and must always be refused; it is kept separate so the original
 50-question submission set stays intact.
 
+The unanswerable count was originally 16, then 9 (an earlier review round
+converted 8 entries that were retrieval-recall misses, not corpus gaps — see
+git history). A later whole-corpus audit (searching all 6,590 indexed
+chunks, not `retrieve()`'s top-k, and ignoring MCQ/exam chunks as sources)
+found 3 more: **dew point** is defined in prose on `Meteorology full
+book.pdf` p87 ("Dew point (DP) is the temperature to which air must be
+cooled at constant pressure for saturation to occur"); **temperature
+inversions degrading visibility** is stated on p273–274 ("Poor visibility is
+usually associated with stable conditions, anticyclones, cols, **inversions**
+and light winds", and radiation fog forms under "an inversion above the fog
+layer"); and the **fuel-reserve/early-diversion** reasoning is supported by
+`7-Flight-Planning-and-Monitoring-2014.pdf` p36 and p40. All 3 were converted
+to answerable with truthful `expected_sources`. The remaining 6 (fuel
+planning near alternate minima, NOTAM runway closure, VOR/DME cross-check,
+icing with inoperative pitot heat, Class C airspace clearance, en-route
+weather below landing minima) were re-audited the same whole-corpus way and
+found genuinely absent — no prose anywhere in the corpus states an answer,
+so they remain marked unanswerable.
+
 **What each metric means:**
 - **Retrieval recall@k** — did the retriever surface a chunk from a page the
-  ground truth says actually contains the answer?
+  ground truth says actually contains the answer? Reported both over all 50
+  in-scope questions and over the answerable subset alone — the 6
+  unanswerable entries have no `expected_sources` and can never register a
+  hit, so the all-50 figure understates what retrieval actually does.
 - **Answer correctness** — does the generated answer convey the reference's
   key facts, per an LLM judge (falls back to lexical matching when no judge
-  model is reachable)?
+  model is reachable). Under the lexical fallback this is a **floor, not a
+  precise measure**: `token_set_ratio` can score a short answer highly when
+  it is a near token-subset of a long reference without actually answering
+  the question (see `report.md`'s own worked example).
 - **Faithfulness / hallucination rate** — is every claim in the answer
   supported by the chunk(s) it *cited* (not everything retrieved)?
 - **Refusal recall / precision** — of the 15 out-of-scope questions, how many
-  were correctly refused (recall); of all refusals issued, how many were on
-  questions that should have been refused (precision).
+  were correctly refused (recall); of all refusals **actually issued**
+  (in-scope refusals + out-of-scope refusals), how many were on questions
+  that should have been refused (precision). An earlier version of this
+  computation counted out-of-scope questions that were *not* refused as if
+  they were refusals, understating precision.
 - **Latency p50/p95** — wall-clock per `/ask` call during the eval run.
 
-**Current honest numbers** (`RAG_GENERATION_MODE=extractive`, from `report.md`):
+**Current honest numbers** (`RAG_GENERATION_MODE=groq` configured, but every
+row in this run actually generated via extraction — see §10 on why —
+from `report.md`):
 
 | Metric | Value |
 |---|---|
-| Retrieval recall@k | 68.0% |
-| Answer correctness | 20.0% |
+| Retrieval recall@k (all 50) | 68.0% |
+| Retrieval recall@k (answerable subset, 44) | 77.3% |
+| Answer correctness | 18.0% — floor under the lexical fallback, see above |
 | Faithfulness (of answered) | 100.0% — **not meaningful**, see below |
 | Hallucination rate (of answered) | 0.0% — **not meaningful**, see below |
 | Refusal recall | 13/15 (86.7%) |
-| Refusal precision | 55.6% |
-| Latency p50 / p95 | ~180 ms / ~390 ms |
+| Refusal precision (of 25 refusals actually issued) | 14/25 (56.0%) |
+| Latency p50 / p95 | ~230 ms / ~440 ms |
 
 **On the 100%/0% faithfulness figures — read this before trusting them.** An
 earlier version of this evaluation compared each answer against the same
@@ -267,18 +298,46 @@ chunk text it had been extracted from, which cannot fail: it always reported
 100% faithfulness and 0% hallucination, regardless of whether the system
 worked. **Those old figures were an artifact of a circular metric, not a
 property of the system, and are not comparable to anything in this
-README.** The rebuilt evaluation still shows 100%/0% under
-`RAG_GENERATION_MODE=extractive`, but for a legitimate structural reason
-this time: an extractive answer is, by construction, a verbatim span copied
-out of its own cited chunk, so checking it against that chunk cannot fail
-either. Faithfulness and hallucination only become informative under
-`RAG_GENERATION_MODE=groq`, where the model is free to introduce claims the
-context doesn't contain. The metrics that do carry real signal in the
-current, extractive-mode run are **retrieval recall@k**, **answer
-correctness**, and the **refusal** figures — and a correctness score of
-20% against a recall of 68% shows the honest gap plainly: retrieval mostly
-finds the right page, but extractive generation frequently fails to produce
-the right answer from it.
+README.** The rebuilt evaluation still shows 100%/0% here because every
+row in this run was actually generated via extraction (see §10), for a
+legitimate structural reason: an extractive answer is, by construction, a
+verbatim span copied out of its own cited chunk, so checking it against that
+chunk cannot fail either. Faithfulness and hallucination only become
+informative for answers actually generated via Groq, where the model is
+free to introduce claims the context doesn't contain. The metrics that do
+carry real signal in this extractive run are **retrieval recall@k**,
+**answer correctness**, and the **refusal** figures — and a correctness
+score of 18% against an answerable-subset recall of 77% shows the honest gap
+plainly: retrieval mostly finds the right page, but extractive generation
+frequently fails to produce the right answer from it.
+
+**On the numbers that moved from an earlier revision of this README** (all
+changes are corrections, not regressions — see
+`.superpowers/sdd/2026-08-24-airman-rag-overhaul/final-fix-report.md` for
+the full before/after and reasoning):
+- **Refusal precision** was published as 55.6% (15/27); the denominator
+  counted 2 out-of-scope questions that were *not* refused as if they were
+  refusals. Fixing the denominator alone (same ground truth) gives 60.0%
+  (15/25). The whole-corpus audit below then reclassified one previously
+  "correctly refused" unanswerable question (dew point) as answerable —
+  refusing it is now correctly scored as a miss — landing at the current
+  56.0% (14/25).
+- **Answer correctness** moved from 20.0% (10/50) to 18.0% (9/50) for the
+  same reason: converting "How is dew point defined?" from unanswerable to
+  answerable means the system's refusal on it, previously auto-scored
+  correct, is now scored as the miss it actually is. The other two
+  conversions (temperature inversion, fuel reserves) were already scored
+  incorrect before and after — the system answers them, just not
+  correctly per the lexical judge — so they didn't move the number.
+- **Retrieval recall@k (all 50)** is unchanged at 68.0%: the 3 newly
+  answerable questions did not gain a retrieval hit in this run (the
+  retriever's top-k for their exact phrasing doesn't include the cited
+  page), so neither the numerator nor the question that could have
+  contributed one changed the all-50 average. The **answerable-subset**
+  figure is new (IMP-3) and drops from an implied 82.9% (34/41, computable
+  from the prior 9-unanswerable ground truth) to 77.3% (34/44) purely
+  because the denominator grew by 3 while the hit count did not — an
+  honest widening of the subset, not a retrieval regression.
 
 ## 7. Frontend
 
@@ -364,3 +423,29 @@ pytest
   generation. **To exercise the Groq path:** supply a valid `GROQ_API_KEY`
   and set `RAG_GENERATION_MODE=groq`; `GET /health`'s `generation_path`
   field will then read `"groq"` once both are true.
+- **The grounding gate's default thresholds were calibrated for extractive,
+  verbatim answers, not paraphrase.** `is_grounded` requires similarity
+  0.65 and token overlap 0.58 against the cited chunk text — both easily
+  cleared by a copied span, but calibrated tight enough that a genuinely
+  correct *paraphrase* (what Groq produces) fails them: running the 41
+  answerable `evaluation_set.json` reference answers through the extractive
+  pair, only 10/41 (24.4%) pass. Because `RAG_GENERATION_MODE` defaults to
+  `groq`, the shipping default would have refused most correct Groq
+  answers — this was never caught by any per-task review because the
+  invalid key meant the Groq path was never exercised end-to-end.
+  `is_grounded` now takes an `abstractive` flag and uses a second,
+  separately-configured pair
+  (`RAG_MIN_GROUNDED_SIMILARITY_ABSTRACTIVE`=0.45,
+  `RAG_MIN_GROUNDED_TOKEN_OVERLAP_ABSTRACTIVE`=0.58) whenever the answer
+  actually came from Groq — inferred from which generator produced the
+  result, not from config alone, so a Groq-configured-but-unavailable
+  fallback to extraction is still graded on the strict pair. The
+  abstractive pair was chosen empirically: it admits 32/41 (78.0%) of the
+  same reference answers while still rejecting invented content (e.g. "A
+  cold front always produces severe hail and tornado activity.") and
+  off-topic text run through the same gate. **This pair is calibrated
+  against reference answers, not against real Groq output** — Groq has
+  never run live in this environment, so the pair should be re-verified
+  once a valid key is available. See
+  `.superpowers/sdd/2026-08-24-airman-rag-overhaul/final-fix-report.md` for
+  the full calibration grid and the rejection sanity checks.
