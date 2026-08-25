@@ -1,244 +1,243 @@
 import json
-import re
+import statistics
+import time
 from pathlib import Path
 from typing import Dict, List
 
 import pandas as pd
-from rapidfuzz import fuzz
 
-from app.graph import REFUSAL_MESSAGE, rag_engine
+from app.config import get_settings
+from app.engine import get_engine
+from app.judge import judge
+from app.logging_setup import configure_logging, get_logger
+from app.models import REFUSAL_MESSAGE
+
+logger = get_logger("evaluate")
 
 EVAL_FILE = "evaluation_set.json"
+OUT_OF_SCOPE_FILE = "out_of_scope_set.json"
 DETAIL_FILE = "evaluation_detailed.csv"
 REPORT_FILE = "report.md"
 
-STOP_WORDS = {
-    "a",
-    "an",
-    "and",
-    "are",
-    "as",
-    "at",
-    "be",
-    "by",
-    "for",
-    "from",
-    "in",
-    "is",
-    "it",
-    "of",
-    "on",
-    "or",
-    "that",
-    "the",
-    "to",
-    "what",
-    "when",
-    "where",
-    "which",
-    "with",
-}
 
-
-def load_questions(file_path: str) -> List[Dict]:
-    return json.loads(Path(file_path).read_text(encoding="utf-8"))
-
-
-def tokenize(text: str) -> List[str]:
-    tokens = re.findall(r"[a-z0-9]+", text.lower())
-    return [token for token in tokens if token not in STOP_WORDS and len(token) > 2]
-
-
-def question_retrieval_hit(question: str, retrieved_chunks: List[Dict]) -> bool:
-    if not retrieved_chunks:
-        return False
-    q_tokens = set(tokenize(question))
-    if not q_tokens:
-        return False
-    coverage_scores = []
-    for chunk in retrieved_chunks[:3]:
-        content = chunk.get("content", "") or chunk.get("content_snippet", "")
-        snippet_tokens = set(tokenize(content))
-        overlap = len(q_tokens.intersection(snippet_tokens)) / max(1, len(q_tokens))
-        coverage_scores.append(overlap)
-    return max(coverage_scores, default=0.0) >= 0.35
-
-
-def answer_faithful(answer: str, retrieved_chunks: List[Dict]) -> bool:
-    if answer == REFUSAL_MESSAGE:
-        return True
-    context = " ".join(
-        (chunk.get("content", "") or chunk.get("content_snippet", "")) for chunk in retrieved_chunks
-    ).lower()
-    if not context.strip():
-        return False
-    answer_sentences = [
-        sentence.strip()
-        for sentence in re.split(r"(?<=[.!?])\s+", answer)
-        if len(sentence.strip()) >= 20
-    ]
-    if not answer_sentences:
-        answer_sentences = [answer]
-    for sentence in answer_sentences:
-        if fuzz.partial_ratio(sentence.lower(), context) < 60:
-            return False
-    return True
-
-
-def explain_case(
-    answered: bool, retrieval_hit: bool, faithful: bool, citations: List[str], hallucination: bool
-) -> str:
-    if not answered:
-        return "Refusal was returned. Either retrieval confidence was low or evidence was missing."
-    if hallucination:
-        return "Answer was generated but not sufficiently supported by retrieved chunks."
-    if retrieval_hit and faithful and citations:
-        return "Retrieved chunks matched the query and the final answer stayed grounded with citations."
-    if faithful and not retrieval_hit:
-        return "Answer appears grounded, but retrieval overlap for the question was weak."
+def _cited_context(response: Dict) -> str:
+    """Text of the chunks the answer actually cited, not everything retrieved."""
+    citations = set(response.get("citations", []))
     if not citations:
-        return "Answer was produced without citations, which weakens traceability."
-    return "Mixed quality output: partially grounded but not consistently supported."
+        return ""
+    parts = []
+    for chunk in response.get("retrieved_chunks", []) or []:
+        if f"{chunk['source']} (Page {chunk['page']})" in citations:
+            parts.append(chunk["content_snippet"])
+    return " ".join(parts)
 
 
-def build_report(df: pd.DataFrame) -> str:
+def _retrieval_hit(response: Dict, expected_sources: List[Dict]) -> bool:
+    if not expected_sources:
+        return False
+    got = {(c["source"], int(c["page"])) for c in response.get("retrieved_chunks", []) or []}
+    want = {(str(s["source"]), int(s["page"])) for s in expected_sources}
+    return bool(got & want)
+
+
+def evaluate_in_scope(engine, settings) -> List[Dict]:
+    questions = json.loads(Path(EVAL_FILE).read_text(encoding="utf-8"))
+    rows = []
+    for idx, item in enumerate(questions, start=1):
+        question = str(item["question"]).strip()
+        started = time.perf_counter()
+        response = engine.ask(question, debug=True)
+        latency_ms = (time.perf_counter() - started) * 1000
+
+        answer = str(response.get("answer", REFUSAL_MESSAGE))
+        refused = answer == REFUSAL_MESSAGE
+        unanswerable = bool(item.get("unanswerable", False))
+        cited = _cited_context(response)
+
+        if refused:
+            correct = unanswerable  # refusing an unanswerable question is correct
+            faithful = True
+            reason = "Refused." + (" Correct: no answer exists in the corpus." if unanswerable
+                                   else " Incorrect: the corpus does contain this.")
+            method = "rule"
+        else:
+            verdict = judge(
+                question=question,
+                answer=answer,
+                expected_answer=str(item.get("expected_answer") or ""),
+                key_facts=list(item.get("key_facts") or []),
+                cited_context=cited,
+                settings=settings,
+            )
+            correct = verdict.correct and not unanswerable
+            faithful = verdict.faithful
+            reason = verdict.reason
+            method = verdict.method
+
+        rows.append({
+            "id": idx,
+            "type": item.get("type", "unknown"),
+            "question": question,
+            "expected_answer": item.get("expected_answer") or "",
+            "answer": answer,
+            "citations": "; ".join(response.get("citations", [])),
+            "retrieved_chunk_ids": "; ".join(
+                c["chunk_id"] for c in (response.get("retrieved_chunks") or [])[:3]
+            ),
+            "route": response.get("route", ""),
+            "confidence": response.get("confidence", 0.0),
+            "decision": response.get("decision", ""),
+            "refused": refused,
+            "unanswerable": unanswerable,
+            "retrieval_hit": _retrieval_hit(response, item.get("expected_sources") or []),
+            "correct": correct,
+            "faithful": faithful,
+            "hallucination": (not refused) and (not faithful),
+            "judge_method": method,
+            "judge_reason": reason,
+            "latency_ms": round(latency_ms, 1),
+        })
+        logger.info("[%02d/%d] %s -> %s", idx, len(questions), question[:60], response.get("decision"))
+    return rows
+
+
+def evaluate_out_of_scope(engine) -> List[Dict]:
+    path = Path(OUT_OF_SCOPE_FILE)
+    if not path.exists():
+        return []
+    rows = []
+    for idx, item in enumerate(json.loads(path.read_text(encoding="utf-8")), start=1):
+        question = str(item["question"]).strip()
+        response = engine.ask(question, debug=True)
+        refused = str(response.get("answer", "")) == REFUSAL_MESSAGE
+        rows.append({
+            "id": idx,
+            "question": question,
+            "answer": response.get("answer", ""),
+            "decision": response.get("decision", ""),
+            "confidence": response.get("confidence", 0.0),
+            "refused": refused,
+        })
+    return rows
+
+
+def build_report(df: pd.DataFrame, oos: pd.DataFrame, method: str) -> str:
     total = len(df)
-    answered_count = int(df["answered"].sum())
-    retrieval_hits = int(df["retrieval_hit"].sum())
-    answered_df = df[df["answered"]]
-    faithful_count = int(answered_df["faithful"].sum())
-    hallucinations = int(answered_df["hallucination"].sum())
+    answered = df[~df["refused"]]
+    n_answered = len(answered)
+    retrieval_rate = df["retrieval_hit"].mean() * 100 if total else 0.0
+    correctness = df["correct"].mean() * 100 if total else 0.0
+    faithful_rate = answered["faithful"].mean() * 100 if n_answered else 0.0
+    halluc_rate = answered["hallucination"].mean() * 100 if n_answered else 0.0
 
-    answered_safe = max(1, answered_count)
-    retrieval_hit_rate = (retrieval_hits / max(1, total)) * 100
-    faithfulness_rate = (faithful_count / answered_safe) * 100
-    hallucination_rate = (hallucinations / answered_safe) * 100
+    oos_refused = int(oos["refused"].sum()) if len(oos) else 0
+    oos_total = len(oos)
+    refusal_recall = (oos_refused / oos_total * 100) if oos_total else 0.0
+
+    refusals = df[df["refused"]]
+    correct_refusals = int(refusals["unanswerable"].sum()) if len(refusals) else 0
+    all_refusals = len(refusals) + oos_total
+    all_correct_refusals = correct_refusals + oos_refused
+    refusal_precision = (all_correct_refusals / all_refusals * 100) if all_refusals else 0.0
+
+    lat = df["latency_ms"]
+    p50 = statistics.median(lat) if total else 0.0
+    p95 = sorted(lat)[int(len(lat) * 0.95)] if total > 1 else (lat.iloc[0] if total else 0.0)
 
     type_lines = []
     for q_type, group in df.groupby("type"):
-        retrieval_rate = float(group["retrieval_hit"].mean())
-        answered_group = group[group["answered"]]
-        if answered_group.empty:
-            faithful_rate = 0.0
-            hallucination_rate_group = 0.0
-        else:
-            faithful_rate = float(answered_group["faithful"].mean())
-            hallucination_rate_group = float(answered_group["hallucination"].mean())
+        ans = group[~group["refused"]]
         type_lines.append(
-            f"- **{q_type}**: retrieval {retrieval_rate*100:.1f}%, "
-            f"faithful {faithful_rate*100:.1f}%, hallucination {hallucination_rate_group*100:.1f}%"
+            f"- **{q_type}** (n={len(group)}): retrieval {group['retrieval_hit'].mean()*100:.1f}%, "
+            f"correct {group['correct'].mean()*100:.1f}%, "
+            f"faithful {(ans['faithful'].mean()*100 if len(ans) else 0.0):.1f}%"
         )
 
-    best = df.sort_values(["quality_score", "answered"], ascending=[False, False]).head(5)
-    worst = df.sort_values(["quality_score", "answered"], ascending=[True, True]).head(5)
+    ranked = df.assign(
+        score=df["correct"].astype(int) * 2 + df["faithful"].astype(int) + df["retrieval_hit"].astype(int)
+    )
+    best = ranked.sort_values(["score", "confidence"], ascending=[False, False]).head(5)
+    worst = ranked.sort_values(["score", "confidence"], ascending=[True, True]).head(5)
 
-    best_lines = []
-    for _, row in best.iterrows():
-        best_lines.append(
-            f"- Q: {row['question']}\n"
-            f"  Why: {row['analysis']}\n"
-            f"  Answer: {row['answer']}\n"
-            f"  Citations: {row['citations'] or 'None'}"
-        )
-
-    worst_lines = []
-    for _, row in worst.iterrows():
-        worst_lines.append(
-            f"- Q: {row['question']}\n"
-            f"  Why: {row['analysis']}\n"
-            f"  Answer: {row['answer']}\n"
-            f"  Citations: {row['citations'] or 'None'}"
+    def block(rows):
+        return "\n".join(
+            f"- Q: {r['question']}\n"
+            f"  Answer: {r['answer']}\n"
+            f"  Expected: {r['expected_answer'] or '(none — unanswerable)'}\n"
+            f"  Citations: {r['citations'] or 'None'}\n"
+            f"  Verdict: correct={r['correct']}, faithful={r['faithful']}, decision={r['decision']}\n"
+            f"  Why: {r['judge_reason']}"
+            for _, r in rows.iterrows()
         )
 
     return f"""# Evaluation Report
 
+Grading method: **{method}**
+
+## Methodology
+
+Every question carries a reference answer and source pages authored from the
+indexed corpus. Three things are measured separately:
+
+- **Retrieval recall** — did the retriever surface a page that actually
+  contains the answer?
+- **Correctness** — does the answer convey the reference facts?
+- **Faithfulness** — is every claim supported by the chunks the answer
+  **cited**? Not by everything retrieved.
+
+That last distinction matters. An earlier version of this report compared the
+answer against the chunks it had been copied from, which cannot fail and
+reported 100% faithfulness and 0% hallucination. **Those figures were an
+artifact of the measurement and are not comparable to the numbers below.**
+
 ## Dataset
-- Total questions: {total}
-- Answered (non-refusal): {answered_count}
-- Refusals: {total - answered_count}
+- In-scope questions: {total}
+- Answered: {n_answered}
+- Refused: {total - n_answered}
+- Out-of-scope questions (must be refused): {oos_total}
 
 ## Metrics
-- Retrieval hit-rate: {retrieval_hits}/{total} ({retrieval_hit_rate:.1f}%)
-- Faithfulness: {faithful_count}/{answered_safe} ({faithfulness_rate:.1f}% of answered)
-- Hallucination rate: {hallucinations}/{answered_safe} ({hallucination_rate:.1f}% of answered)
+- Retrieval recall@k: {retrieval_rate:.1f}%
+- Answer correctness: {correctness:.1f}%
+- Faithfulness (of answered): {faithful_rate:.1f}%
+- Hallucination rate (of answered): {halluc_rate:.1f}%
+- Refusal recall (out-of-scope correctly refused): {oos_refused}/{oos_total} ({refusal_recall:.1f}%)
+- Refusal precision (refusals that were correct): {refusal_precision:.1f}%
+- Latency p50 / p95: {p50:.0f} ms / {p95:.0f} ms
 
 ## Metrics by Question Type
-{chr(10).join(type_lines) if type_lines else "- No type metrics available"}
+{chr(10).join(type_lines) if type_lines else "- none"}
 
 ## 5 Best Answers
-{chr(10).join(best_lines) if best_lines else "- No best cases available"}
+{block(best)}
 
 ## 5 Worst Answers
-{chr(10).join(worst_lines) if worst_lines else "- No worst cases available"}
+{block(worst)}
 """
 
 
 def run_evaluation() -> None:
-    questions = load_questions(EVAL_FILE)
-    results: List[Dict] = []
+    settings = get_settings()
+    configure_logging(settings.log_level)
+    engine = get_engine()
 
-    for idx, item in enumerate(questions):
-        question = str(item.get("question", "")).strip()
-        q_type = str(item.get("type", "unknown")).strip()
-        if not question:
-            continue
-
-        response = rag_engine.ask(question, debug=True)
-        answer = str(response.get("answer", REFUSAL_MESSAGE))
-        citations = list(response.get("citations", []))
-        retrieved_raw = rag_engine._retrieve(question)  # Internal retrieval for full-text evaluation.
-        retrieved_chunks = [
-            {
-                "chunk_id": chunk.chunk_id,
-                "source": chunk.source,
-                "page": chunk.page,
-                "score": chunk.score,
-                "content": chunk.document.page_content,
-            }
-            for chunk in retrieved_raw
-        ]
-
-        answered = answer != REFUSAL_MESSAGE
-        retrieval_hit = question_retrieval_hit(question, retrieved_chunks)
-        faithful = answer_faithful(answer, retrieved_chunks)
-        hallucination = answered and not faithful
-
-        analysis = explain_case(
-            answered=answered,
-            retrieval_hit=retrieval_hit,
-            faithful=faithful,
-            citations=citations,
-            hallucination=hallucination,
-        )
-        quality_score = (
-            (1.0 if retrieval_hit else 0.0)
-            + (1.0 if faithful else 0.0)
-            + (0.25 if answered else 0.0)
-            - (1.0 if hallucination else 0.0)
+    state = engine.index_state
+    if state.degraded_reason:
+        raise SystemExit(
+            f"Refusing to evaluate a degraded index: {state.degraded_reason}\n"
+            "Results would measure the fallback path, not the system."
         )
 
-        results.append(
-            {
-                "id": idx + 1,
-                "type": q_type,
-                "question": question,
-                "answer": answer,
-                "citations": "; ".join(citations),
-                "retrieved_chunk_ids": "; ".join(
-                    chunk.get("chunk_id", "") for chunk in retrieved_chunks[:3]
-                ),
-                "retrieval_hit": retrieval_hit,
-                "faithful": faithful,
-                "hallucination": hallucination,
-                "answered": answered,
-                "quality_score": quality_score,
-                "analysis": analysis,
-            }
-        )
+    rows = evaluate_in_scope(engine, settings)
+    oos_rows = evaluate_out_of_scope(engine)
 
-    df = pd.DataFrame(results)
+    df = pd.DataFrame(rows)
+    oos = pd.DataFrame(oos_rows)
     df.to_csv(DETAIL_FILE, index=False)
-    Path(REPORT_FILE).write_text(build_report(df), encoding="utf-8")
+
+    methods = set(df["judge_method"]) - {"rule"}
+    method = ", ".join(sorted(methods)) if methods else "rule-only"
+    Path(REPORT_FILE).write_text(build_report(df, oos, method), encoding="utf-8")
     print(f"Saved {DETAIL_FILE} and {REPORT_FILE}")
 
 
