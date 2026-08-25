@@ -58,6 +58,7 @@ class RetrievedChunk:
             "score": round(self.score, 4),
             "lexical_overlap": round(self.lexical_overlap, 4),
             "content_snippet": self.document.page_content[:snippet_chars],
+            "content": self.document.page_content,
         }
 
 

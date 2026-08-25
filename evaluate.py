@@ -28,7 +28,7 @@ def _cited_context(response: Dict) -> str:
     parts = []
     for chunk in response.get("retrieved_chunks", []) or []:
         if f"{chunk['source']} (Page {chunk['page']})" in citations:
-            parts.append(chunk["content_snippet"])
+            parts.append(chunk.get("content") or chunk.get("content_snippet", ""))
     return " ".join(parts)
 
 
