@@ -97,6 +97,15 @@ class AskResult:
     decision: Decision
     follow_up_question: Optional[str] = None
     retrieved: List[RetrievedChunk] = field(default_factory=list)
+    # Which generator actually produced this specific answer: "groq",
+    # "extractive", or "n/a" when no generation was attempted (refused
+    # before generation). Distinct from Settings.generation_mode /
+    # engine.generation_path, which describe configuration, not what
+    # happened on this call -- a Groq call that falls back to extraction
+    # must record "extractive" here. Evaluation depends on this being
+    # accurate per row (IMP-1): the extractive-generation faithfulness
+    # circularity note must key off what actually ran, not the config.
+    generation_path: str = "n/a"
 
     def to_payload(self, debug: bool, top_k: int) -> Dict[str, object]:
         payload: Dict[str, object] = {
@@ -105,6 +114,7 @@ class AskResult:
             "route": self.route,
             "confidence": round(self.confidence, 4),
             "decision": self.decision.value,
+            "generation_path": self.generation_path,
         }
         if self.follow_up_question:
             payload["follow_up_question"] = self.follow_up_question

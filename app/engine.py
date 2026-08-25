@@ -135,6 +135,7 @@ class AviationRAGEngine:
                     return self._respond(
                         salvage.answer, self._citations(salvage.chunks), retrieved, debug,
                         route, confidence, Decision.ANSWER_LOW_CONFIDENCE_GROUNDED,
+                        generation_path="extractive",
                     )
             return self._respond(
                 REFUSAL_MESSAGE, [], retrieved, debug, route, confidence,
@@ -143,6 +144,7 @@ class AviationRAGEngine:
             )
 
         result, used_groq = self._generate(clean, question_tokens, candidates, route)
+        actual_path = "groq" if used_groq else "extractive"
 
         if result.outcome is GenerationOutcome.DECLINED:
             # The model judged the evidence insufficient. Honour that.
@@ -150,6 +152,7 @@ class AviationRAGEngine:
                 REFUSAL_MESSAGE, [], retrieved, debug, route, confidence,
                 Decision.REFUSE_MODEL_DECLINED,
                 self._follow_up(question_tokens, candidates),
+                generation_path=actual_path,
             )
 
         if result.outcome is not GenerationOutcome.ANSWERED or not result.chunks:
@@ -157,6 +160,7 @@ class AviationRAGEngine:
                 REFUSAL_MESSAGE, [], retrieved, debug, route, confidence,
                 Decision.REFUSE_NO_SUPPORTED_ANSWER,
                 self._follow_up(question_tokens, candidates),
+                generation_path=actual_path,
             )
 
         if not is_grounded(result.answer, result.chunks, self.settings, abstractive=used_groq):
@@ -165,11 +169,13 @@ class AviationRAGEngine:
                 REFUSAL_MESSAGE, [], retrieved, debug, route, confidence,
                 Decision.REFUSE_GROUNDING_FAILED,
                 self._follow_up(question_tokens, candidates),
+                generation_path=actual_path,
             )
 
         return self._respond(
             result.answer, self._citations(result.chunks), retrieved, debug,
             route, confidence, Decision.ANSWER,
+            generation_path=actual_path,
         )
 
     def _generate(self, question, question_tokens, chunks, route) -> tuple:
@@ -216,13 +222,17 @@ class AviationRAGEngine:
             "(for example: phase of flight, minima type, or regulation context)."
         )
 
-    def _respond(self, answer, citations, retrieved, debug, route, confidence, decision, follow_up=None):
+    def _respond(
+        self, answer, citations, retrieved, debug, route, confidence, decision,
+        follow_up=None, generation_path="n/a",
+    ):
         return AskResult(
             answer=answer,
             citations=citations,
             route=route,
             confidence=confidence,
             decision=decision,
+            generation_path=generation_path,
             follow_up_question=follow_up,
             retrieved=retrieved,
         ).to_payload(debug=debug, top_k=self.settings.top_k)
