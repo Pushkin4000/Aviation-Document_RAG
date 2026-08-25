@@ -12,14 +12,29 @@
 </head>
 <body>
 
+<!-- ============ BOOT SEQUENCE ============ -->
+<!-- An airliner's displays align their inertial reference before showing
+     anything. This does the same job: it covers the webfont swap and the
+     first ScrollTrigger measurement, so the page never flashes half-built. -->
+<div class="boot" id="boot">
+  <div class="boot-inner">
+    <div class="boot-mark">AIRMAN</div>
+    <ul class="boot-log" id="bootLog">
+      <li data-msg="ALIGNING INERTIAL REFERENCE">ALIGNING INERTIAL REFERENCE</li>
+      <li data-msg="LOADING VECTOR INDEX · 6,590">LOADING VECTOR INDEX · 6,590</li>
+      <li data-msg="LINK TO RETRIEVAL SERVICE">LINK TO RETRIEVAL SERVICE</li>
+      <li data-msg="DISPLAYS READY">DISPLAYS READY</li>
+    </ul>
+    <div class="boot-bar"><i id="bootBar"></i></div>
+  </div>
+</div>
+
 <!-- ============ FIXED HUD OVERLAY ============ -->
 <!-- Scrolling the page is a descent: the altitude tape unwinds FL410 -> GND. -->
 <div class="hud" aria-hidden="true">
   <svg class="hud-brackets" viewBox="0 0 100 100" preserveAspectRatio="none">
-    <path class="br" d="M2,10 L2,2 L10,2"/>
-    <path class="br" d="M90,2 L98,2 L98,10"/>
-    <path class="br" d="M98,90 L98,98 L90,98"/>
-    <path class="br" d="M10,98 L2,98 L2,90"/>
+    <path class="br" d="M2,10 L2,2 L10,2"/><path class="br" d="M90,2 L98,2 L98,10"/>
+    <path class="br" d="M98,90 L98,98 L90,98"/><path class="br" d="M10,98 L2,98 L2,90"/>
   </svg>
 
   <div class="hud-heading">
@@ -40,18 +55,29 @@
   </div>
 </div>
 
+<!-- Motion control. Lives outside .hud because it must accept clicks, and it
+     is the one thing on the page that must work before anything else does. -->
+<button class="motion-toggle" id="motionToggle" type="button" aria-pressed="false">
+  <span class="mt-dot"></span><span class="mt-label" id="motionLabel">MOTION</span>
+</button>
+
+<div class="reticle" id="reticle" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+
 <!-- ============ HERO ============ -->
 <section class="hero" id="hero">
   <canvas id="sky"></canvas>
   <div class="horizon-glow"></div>
+  <div class="grid-floor" id="gridFloor"></div>
 
   <div class="hero-inner" id="heroInner">
     <div class="hero-eyebrow">
       <span class="tick"></span>
-      <span>EASA ATPL CORPUS · 6,590 VECTORS · RETRIEVAL-AUGMENTED</span>
+      <span class="scramble" data-text="EASA ATPL CORPUS · 6,590 VECTORS · RETRIEVAL-AUGMENTED">EASA ATPL CORPUS · 6,590 VECTORS · RETRIEVAL-AUGMENTED</span>
     </div>
 
-    <h1 class="wordmark" id="wordmark" aria-label="AIRMAN"><span class="ch">A</span><span class="ch">I</span><span class="ch">R</span><span class="ch">M</span><span class="ch">A</span><span class="ch">N</span></h1>
+    <h1 class="wordmark" aria-label="AIRMAN">
+      <span class="mask"><span class="ch">A</span></span><span class="mask"><span class="ch">I</span></span><span class="mask"><span class="ch">R</span></span><span class="mask"><span class="ch">M</span></span><span class="mask"><span class="ch">A</span></span><span class="mask"><span class="ch">N</span></span>
+    </h1>
 
     <p class="hero-lede" id="heroLede">
       It answers from the documents, cites the page, and says
@@ -59,12 +85,23 @@
     </p>
 
     <div class="hero-actions" id="heroActions">
-      <a class="btn btn-primary" href="/console">
+      <a class="btn btn-primary magnetic" href="/console">
         <span>OPEN CONSOLE</span>
         <svg viewBox="0 0 24 24" class="btn-ico"><path d="M4 12h15M13 6l6 6-6 6"/></svg>
       </a>
-      <a class="btn btn-ghost" href="#pipeline">SEE THE PIPELINE</a>
+      <a class="btn btn-ghost magnetic" href="#pipeline">SEE THE PIPELINE</a>
     </div>
+  </div>
+
+  <!-- Attitude indicator: banks with pointer, pitches with scroll. -->
+  <div class="adi" id="adi" aria-hidden="true">
+    <div class="adi-face" id="adiFace">
+      <div class="adi-sky"></div><div class="adi-ground"></div>
+      <div class="adi-horizon"></div>
+      <div class="adi-ladder"><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+    <div class="adi-fixed"><span></span><span></span><span></span></div>
+    <div class="adi-cap">ATTITUDE</div>
   </div>
 
   <div class="scroll-cue" id="scrollCue">
@@ -75,14 +112,14 @@
 
 <!-- ============ THE RULE ============ -->
 <section class="rule-sec" id="rule">
-  <div class="sec-tag"><span>01</span> THE HARD RULE</div>
+  <div class="sec-tag"><span>01</span> <b class="scramble" data-text="THE HARD RULE">THE HARD RULE</b></div>
   <p class="rule-copy" id="ruleCopy">Most retrieval systems answer anyway. <em>This one stops.</em></p>
 
   <div class="refusal-card" id="refusalCard">
     <div class="refusal-bar"></div>
     <div class="refusal-body">
       <div class="refusal-label">VERBATIM RESPONSE WHEN EVIDENCE IS INSUFFICIENT</div>
-      <div class="refusal-text">This information is not available in the provided document(s).</div>
+      <div class="refusal-text" id="refusalText">This information is not available in the provided document(s).</div>
       <div class="refusal-meta">
         <span>REFUSAL RECALL <b>100%</b></span>
         <span>REFUSAL PRECISION <b>73.1%</b></span>
@@ -93,18 +130,18 @@
 
 <!-- ============ PIPELINE / FLIGHT PLAN ============ -->
 <section class="pipeline" id="pipeline">
-  <div class="pipe-sticky">
-    <div class="sec-tag"><span>02</span> FLIGHT PLAN — QUERY TO CITATION</div>
+  <div class="pipe-sticky" id="pipeSticky">
+    <div class="sec-tag"><span>02</span> <b class="scramble" data-text="FLIGHT PLAN — QUERY TO CITATION">FLIGHT PLAN — QUERY TO CITATION</b></div>
 
-    <svg class="route" viewBox="0 0 1000 210" preserveAspectRatio="xMidYMid meet">
-      <path id="routeGhost" class="route-ghost" d="M60,150 C180,150 190,60 300,60 C420,60 430,150 545,150 C660,150 670,55 790,55 C880,55 900,110 940,110"/>
-      <path id="routePath" class="route-line" d="M60,150 C180,150 190,60 300,60 C420,60 430,150 545,150 C660,150 670,55 790,55 C880,55 900,110 940,110"/>
-      <g class="waypoints">
-        <g class="wp" transform="translate(60,150)"><circle class="wp-ring" r="16"/><path class="wp-mark" d="M0,-8 L7,6 L-7,6 Z"/></g>
-        <g class="wp" transform="translate(300,60)"><circle class="wp-ring" r="16"/><path class="wp-mark" d="M0,-8 L7,6 L-7,6 Z"/></g>
-        <g class="wp" transform="translate(545,150)"><circle class="wp-ring" r="16"/><path class="wp-mark" d="M0,-8 L7,6 L-7,6 Z"/></g>
-        <g class="wp" transform="translate(790,55)"><circle class="wp-ring" r="16"/><path class="wp-mark" d="M0,-8 L7,6 L-7,6 Z"/></g>
-        <g class="wp" transform="translate(940,110)"><circle class="wp-ring" r="16"/><path class="wp-mark" d="M0,-8 L7,6 L-7,6 Z"/></g>
+    <svg class="route" viewBox="0 0 1000 230" preserveAspectRatio="xMidYMid meet">
+      <path id="routeGhost" class="route-ghost" d="M60,160 C180,160 190,70 300,70 C420,70 430,160 545,160 C660,160 670,65 790,65 C880,65 900,120 940,120"/>
+      <path id="routePath" class="route-line" d="M60,160 C180,160 190,70 300,70 C420,70 430,160 545,160 C660,160 670,65 790,65 C880,65 900,120 940,120"/>
+      <g class="waypoints" id="waypoints">
+        <g class="wp" transform="translate(60,160)"><circle class="wp-halo" r="26"/><circle class="wp-ring" r="16"/><path class="wp-mark" d="M0,-8 L7,6 L-7,6 Z"/><text class="wp-t" y="40">RETRIEVE</text></g>
+        <g class="wp" transform="translate(300,70)"><circle class="wp-halo" r="26"/><circle class="wp-ring" r="16"/><path class="wp-mark" d="M0,-8 L7,6 L-7,6 Z"/><text class="wp-t" y="-28">ROUTE</text></g>
+        <g class="wp" transform="translate(545,160)"><circle class="wp-halo" r="26"/><circle class="wp-ring" r="16"/><path class="wp-mark" d="M0,-8 L7,6 L-7,6 Z"/><text class="wp-t" y="40">GENERATE</text></g>
+        <g class="wp" transform="translate(790,65)"><circle class="wp-halo" r="26"/><circle class="wp-ring" r="16"/><path class="wp-mark" d="M0,-8 L7,6 L-7,6 Z"/><text class="wp-t" y="-28">VERIFY</text></g>
+        <g class="wp" transform="translate(940,120)"><circle class="wp-halo" r="26"/><circle class="wp-ring" r="16"/><path class="wp-mark" d="M0,-8 L7,6 L-7,6 Z"/><text class="wp-t" y="40">CITE</text></g>
       </g>
       <g id="aircraft" class="aircraft">
         <path d="M0,-11 L4,-1 L14,4 L14,7 L3,5 L2,11 L6,14 L6,16 L0,14 L-6,16 L-6,14 L-2,11 L-3,5 L-14,7 L-14,4 L-4,-1 Z"/>
@@ -136,9 +173,9 @@
   </div>
 </section>
 
-<!-- ============ INSTRUMENTS / METRICS ============ -->
+<!-- ============ INSTRUMENTS ============ -->
 <section class="instruments" id="instruments">
-  <div class="sec-tag"><span>03</span> INSTRUMENT PANEL</div>
+  <div class="sec-tag"><span>03</span> <b class="scramble" data-text="INSTRUMENT PANEL">INSTRUMENT PANEL</b></div>
   <div class="gauge-row">
     <div class="gauge-cell" data-val="77.3">
       <svg class="dial" viewBox="0 0 120 120"><circle class="dial-bg" cx="60" cy="60" r="50"/><circle class="dial-arc" cx="60" cy="60" r="50"/></svg>
@@ -170,7 +207,7 @@
 
 <!-- ============ COMPARISON ============ -->
 <section class="compare" id="compare">
-  <div class="sec-tag"><span>04</span> WHAT THE MODEL BOUGHT</div>
+  <div class="sec-tag"><span>04</span> <b class="scramble" data-text="WHAT THE MODEL BOUGHT">WHAT THE MODEL BOUGHT</b></div>
   <div class="cmp-head"><span>METRIC</span><span class="lg-a">EXTRACTIVE</span><span class="lg-b">GROQ</span></div>
   <div class="cmp-rows" id="cmpRows">
     <div class="cmp-row" data-a="18.0" data-b="48.0">
@@ -195,7 +232,7 @@
 
 <!-- ============ CORPUS ============ -->
 <section class="corpus" id="corpus">
-  <div class="sec-tag"><span>05</span> INDEXED LIBRARY</div>
+  <div class="sec-tag"><span>05</span> <b class="scramble" data-text="INDEXED LIBRARY">INDEXED LIBRARY</b></div>
   <div class="marquee">
     <div class="mq-track" id="mqTrack">
       <span>METEOROLOGY</span><i>◆</i><span>GENERAL NAVIGATION</span><i>◆</i><span>RADIO NAVIGATION</span><i>◆</i><span>MASS &amp; BALANCE</span><i>◆</i><span>FLIGHT PLANNING</span><i>◆</i><span>AIR REGULATION</span><i>◆</i><span>INSTRUMENTS</span><i>◆</i>
@@ -214,7 +251,7 @@
   <div class="cta-radar"><span></span><span></span><span></span><em id="sweep"></em></div>
   <h2 class="cta-h">Ask it something<br>it cannot answer.</h2>
   <p class="cta-p">The interesting behaviour is the refusal. Try a question the EASA syllabus never covers, and watch it decline instead of inventing.</p>
-  <a class="btn btn-primary big" href="/console">
+  <a class="btn btn-primary big magnetic" href="/console">
     <span>OPEN THE CONSOLE</span>
     <svg viewBox="0 0 24 24" class="btn-ico"><path d="M4 12h15M13 6l6 6-6 6"/></svg>
   </a>

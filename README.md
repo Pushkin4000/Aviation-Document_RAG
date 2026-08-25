@@ -405,16 +405,45 @@ and is the page's only third-party dependency.
 original rule that nothing moves except the stage indicator, because motion in
 an instrument you are reading is noise. The landing page is not an instrument,
 so it uses scroll as a descent: the HUD altitude tape unwinds FL410 to ground
-across the document, the RAG pipeline draws as a flight plan with an aircraft
-flying the route, and the metric dials wind up to the measured figures — the
-10.3% hallucination rate included, in the refusal red rather than the accent.
+across the document, the RAG pipeline pins and draws as a flight plan with an
+aircraft flying the route, and the metric dials wind up to the measured figures
+— the 10.3% hallucination rate included, in refusal red rather than the accent.
+
+### Motion tiers
+
+Motion runs in two tiers, chosen by explicit override first (`?motion=full`,
+`?motion=reduced`, or the on-page toggle, which persists in `localStorage`),
+then by `prefers-reduced-motion`.
+
+| Tier | Behaviour |
+|---|---|
+| `full` | Everything: parallax, scrubbed flight path, starfield, marquee, radar sweep, cursor reticle, magnetic buttons. |
+| `reduced` | Fades and sub-10px moves only. Content still animates in, counters still count, the route still draws — nothing translates far, spins, scales, or follows the scrollbar. |
+
+The two-tier design replaced a single hard branch that skipped GSAP entirely
+under `prefers-reduced-motion`. That over-read the signal: Windows sets the
+flag whenever *Settings > Accessibility > Visual effects > Animation effects*
+is off, which many machines have off for performance rather than for
+vestibular sensitivity, so those visitors got a fully static page that looked
+broken. Reduced motion means removing what triggers vestibular symptoms —
+large parallax, spins, scale changes, scroll-jacked scrubbing — not removing
+all feedback.
+
+### Failure behaviour
 
 Motion never carries meaning on its own. Every entrance is a `gsap.from()`, so
-a blocked CDN leaves the page complete rather than blank, and the two
-components that do start empty (dial arcs, comparison bars) have an explicit
-no-GSAP fallback. `prefers-reduced-motion: reduce` takes the same path. The
-HUD's status readout is live: it reads `/health`, so the landing page reports
-the real index state and generation path rather than a hardcoded boast.
+a blocked CDN leaves the page complete rather than blank, and the components
+that do start empty (dial arcs, comparison bars) have an explicit no-GSAP
+fallback. The boot overlay covers the page and locks scroll, so its dismissal
+is driven by a wall-clock watchdog rather than only by a GSAP `onComplete` —
+GSAP runs on `requestAnimationFrame`, which browsers pause in background tabs,
+and a splash screen that never lifts would strand the visitor. The hero
+timeline has the same guard. `ScrollTrigger.refresh()` runs on
+`document.fonts.ready`, since the webfont swap changes every element's height
+and otherwise leaves every trigger measuring stale positions.
+
+The HUD's status readout is live: it reads `/health`, so the landing page
+reports the real index state and generation path rather than a hardcoded boast.
 
 ## 8. Deployment
 
