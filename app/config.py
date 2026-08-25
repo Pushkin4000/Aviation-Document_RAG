@@ -40,6 +40,21 @@ class Settings(BaseSettings):
     min_grounded_token_overlap: float = Field(
         default=0.58, ge=0.0, le=1.0, validation_alias="RAG_MIN_GROUNDED_TOKEN_OVERLAP"
     )
+    # Abstractive (Groq) pair. The extractive pair above is calibrated for
+    # verbatim spans and must not move (report.md's benchmark runs
+    # extractive). A Groq answer is paraphrased, not copied, so it needs its
+    # own, looser pair. Calibrated empirically against the 41 answerable
+    # reference answers in evaluation_set.json: at 0.45/0.58, 32/41 (78.0%)
+    # of reference answers pass (vs 10/41 at the extractive 0.65/0.58 pair),
+    # while still rejecting invented content and off-topic text. See
+    # .superpowers/sdd/2026-08-24-airman-rag-overhaul/final-fix-report.md
+    # for the full calibration grid.
+    min_grounded_similarity_abstractive: float = Field(
+        default=0.45, ge=0.0, le=1.0, validation_alias="RAG_MIN_GROUNDED_SIMILARITY_ABSTRACTIVE"
+    )
+    min_grounded_token_overlap_abstractive: float = Field(
+        default=0.58, ge=0.0, le=1.0, validation_alias="RAG_MIN_GROUNDED_TOKEN_OVERLAP_ABSTRACTIVE"
+    )
     answer_max_words: int = Field(default=65, ge=10, le=500, validation_alias="RAG_ANSWER_MAX_WORDS")
 
     # Confidence gates

@@ -11,7 +11,9 @@ from app.models import REFUSAL_MESSAGE, RetrievedChunk
 logger = get_logger("grounding")
 
 
-def is_grounded(answer: str, used_chunks: List[RetrievedChunk], settings: Settings) -> bool:
+def is_grounded(
+    answer: str, used_chunks: List[RetrievedChunk], settings: Settings, abstractive: bool = False
+) -> bool:
     if answer == REFUSAL_MESSAGE:
         return True
 
@@ -57,7 +59,13 @@ def is_grounded(answer: str, used_chunks: List[RetrievedChunk], settings: Settin
     answer_tokens = set(answer_token_list)
     context_tokens = set(scoring.tokenize(normalized_context))
     overlap = len(answer_tokens.intersection(context_tokens)) / max(1, len(answer_tokens))
-    required_overlap = settings.min_grounded_token_overlap
+    if abstractive:
+        min_similarity = settings.min_grounded_similarity_abstractive
+        min_overlap = settings.min_grounded_token_overlap_abstractive
+    else:
+        min_similarity = settings.min_grounded_similarity
+        min_overlap = settings.min_grounded_token_overlap
+    required_overlap = min_overlap
     if len(answer_token_list) <= 10:
-        required_overlap = max(0.5, settings.min_grounded_token_overlap - 0.06)
-    return similarity >= settings.min_grounded_similarity and overlap >= required_overlap
+        required_overlap = max(0.5, min_overlap - 0.06)
+    return similarity >= min_similarity and overlap >= required_overlap

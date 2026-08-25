@@ -142,7 +142,7 @@ class AviationRAGEngine:
                 self._follow_up(question_tokens, candidates),
             )
 
-        result = self._generate(clean, question_tokens, candidates, route)
+        result, used_groq = self._generate(clean, question_tokens, candidates, route)
 
         if result.outcome is GenerationOutcome.DECLINED:
             # The model judged the evidence insufficient. Honour that.
@@ -159,7 +159,7 @@ class AviationRAGEngine:
                 self._follow_up(question_tokens, candidates),
             )
 
-        if not is_grounded(result.answer, result.chunks, self.settings):
+        if not is_grounded(result.answer, result.chunks, self.settings, abstractive=used_groq):
             logger.info("Grounding check rejected the answer for %r", clean[:80])
             return self._respond(
                 REFUSAL_MESSAGE, [], retrieved, debug, route, confidence,
@@ -172,7 +172,11 @@ class AviationRAGEngine:
             route, confidence, Decision.ANSWER,
         )
 
-    def _generate(self, question, question_tokens, chunks, route) -> GenerationResult:
+    def _generate(self, question, question_tokens, chunks, route) -> tuple:
+        """Returns (GenerationResult, used_groq). `used_groq` reflects which
+        generator actually produced the result, not just whether Groq is
+        configured — a Groq UNAVAILABLE outcome falls back to extraction, and
+        the grounding gate must be told which thresholds pair applies."""
         if self.settings.groq_enabled:
             model = self.settings.groq_model
             if self.settings.routing_models_enabled:
@@ -182,9 +186,9 @@ class AviationRAGEngine:
             # Only UNAVAILABLE — no key, transport error, unusable response —
             # falls back to extraction.
             if result.outcome is not GenerationOutcome.UNAVAILABLE:
-                return result
+                return result, True
             logger.info("Groq unavailable, falling back to extractive generation")
-        return generate_extractive(question, question_tokens, chunks, self.settings)
+        return generate_extractive(question, question_tokens, chunks, self.settings), False
 
     # -- helpers ---------------------------------------------------------
 
