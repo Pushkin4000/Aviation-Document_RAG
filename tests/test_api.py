@@ -77,3 +77,16 @@ def test_frontend_is_served(client):
     r = client.get("/")
     assert r.status_code == 200
     assert "text/html" in r.headers["content-type"]
+
+
+def test_ask_response_exposes_which_generator_answered(client):
+    """Regression: `generation_path` was absent from AskResponse, so
+    FastAPI's response_model stripped it from every reply. /health reports
+    the *configured* path, so without this field a caller cannot tell a real
+    Groq answer from a silent extractive fallback (rejected key, exhausted
+    daily token cap)."""
+    response = client.post("/ask", json={"question": "What is a cold front?"})
+    assert response.status_code == 200
+    body = response.json()
+    assert "generation_path" in body
+    assert body["generation_path"] in {"groq", "extractive", "n/a"}

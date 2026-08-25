@@ -55,6 +55,13 @@ class AskResponse(BaseModel):
     route: Optional[str] = None
     confidence: Optional[float] = None
     decision: Optional[str] = None
+    # Which generator actually answered THIS request: "groq", "extractive",
+    # or "n/a" when the query was refused before generation. /health reports
+    # the configured path, which can differ per request -- a rejected key or
+    # an exhausted daily token cap makes a "groq" service answer
+    # extractively. Undeclared, FastAPI's response_model silently strips
+    # this, leaving callers unable to tell the two apart.
+    generation_path: Optional[str] = None
     follow_up_question: Optional[str] = None
     retrieved_chunks: Optional[List[RetrievedChunkPayload]] = None
 
