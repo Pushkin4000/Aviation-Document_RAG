@@ -1,3 +1,62 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>AIRMAN RAG</title></head>
-<body><p>Frontend pending — see Task 16.</p></body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIRMAN — Document RAG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;700&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<header class="masthead">
+  <h1>AIRMAN</h1>
+  <span class="sub">DOCUMENT-GROUNDED RETRIEVAL</span>
+  <span id="health" data-state="unknown">CHECKING…</span>
+</header>
+
+<form class="query" id="form">
+  <input id="question" name="question" autocomplete="off" required maxlength="2000"
+         placeholder="Ask about altimetry, navigation, mass and balance, air regulation…">
+  <button id="submit" type="submit">ASK</button>
+</form>
+
+<main class="split">
+  <section class="answer-col">
+    <div class="stages" id="stages">
+      <span class="stage" data-stage="retrieve">RETRIEVE</span>
+      <span class="stage" data-stage="route">ROUTE</span>
+      <span class="stage" data-stage="generate">GENERATE</span>
+      <span class="stage" data-stage="verify">VERIFY</span>
+    </div>
+    <p id="answer">Ask a question to query the indexed aviation corpus.</p>
+    <div class="citations" id="citations"></div>
+  </section>
+
+  <aside class="rail">
+    <h2>Telemetry</h2>
+    <div class="metric"><span class="k">ROUTE</span><span class="v" id="m-route">—</span></div>
+    <div class="metric"><span class="k">DECISION</span><span class="v" id="m-decision">—</span></div>
+    <div class="metric"><span class="k">LATENCY</span><span class="v" id="m-latency">—</span></div>
+
+    <div class="gauge">
+      <h2>Confidence</h2>
+      <div class="gauge-track">
+        <div class="gauge-fill" id="gauge-fill" style="width:0%"></div>
+        <div class="gauge-tick" id="tick-clarify"></div>
+        <div class="gauge-tick" id="tick-answer"></div>
+      </div>
+      <div class="gauge-labels">
+        <span>0.00</span><span id="gauge-value">—</span><span>1.00</span>
+      </div>
+    </div>
+
+    <h2>Retrieved</h2>
+    <div id="chunks"></div>
+  </aside>
+</main>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
