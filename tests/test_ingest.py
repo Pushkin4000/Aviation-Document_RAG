@@ -1,6 +1,8 @@
+import pytest
 from langchain_core.documents import Document
 
-from app.ingest import chunk_fingerprint, clean_text, is_noise_chunk, split_documents
+from app.config import Settings
+from app.ingest import chunk_fingerprint, clean_text, ingest_pipeline, is_noise_chunk, split_documents
 
 
 def test_clean_text_rejoins_hyphenated_line_breaks():
@@ -33,3 +35,30 @@ def test_split_assigns_traceable_chunk_ids():
     chunks, dropped = split_documents(docs, chunk_size=200, chunk_overlap=20)
     assert chunks
     assert all(c.metadata["chunk_id"].startswith("s.pdf:p4:c") for c in chunks)
+
+
+def test_ingest_pipeline_defaults_dirs_from_settings_not_module_constants(monkeypatch):
+    """MIN-2/IMP-5: ingest_pipeline's data_dir/vectorstore_dir defaults must
+    come from get_settings(), not the module-level DATA_DIR/VECTORSTORE_DIR
+    constants -- otherwise RAG_VECTORSTORE_DIR is honoured by the engine but
+    silently ignored by ingest, a split-brain where /ingest "succeeds" but
+    writes somewhere the running engine never reads from."""
+    import app.ingest as mod
+
+    fake_settings = Settings(
+        _env_file=None, data_dir="configured-data", vectorstore_dir="configured-vectorstore"
+    )
+    monkeypatch.setattr(mod, "get_settings", lambda: fake_settings)
+
+    seen = {}
+
+    def fake_load_documents(data_dir):
+        seen["data_dir"] = data_dir
+        return []  # empty pages -> ingest_pipeline raises ValueError, which is fine; we only need the arg captured
+
+    monkeypatch.setattr(mod, "load_documents", fake_load_documents)
+
+    with pytest.raises(ValueError):
+        ingest_pipeline()
+
+    assert seen["data_dir"] == "configured-data"

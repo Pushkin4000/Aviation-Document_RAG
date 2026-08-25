@@ -5,7 +5,10 @@
 // .env must flow through to the UI without editing this file.
 let clarifyThreshold = 0.34;
 let answerThreshold = 0.48;
-const REFUSAL = 'This information is not available in the provided document(s).';
+// Fallback only, used if /health is unreachable. Once /health responds,
+// loadHealth() overwrites this with the server's actual refusal_message —
+// same single-source-of-truth reason as the thresholds above.
+let REFUSAL = 'This information is not available in the provided document(s).';
 
 const $ = (id) => document.getElementById(id);
 
@@ -27,6 +30,9 @@ async function loadHealth() {
     if (body.thresholds) {
       if (typeof body.thresholds.clarify === 'number') clarifyThreshold = body.thresholds.clarify;
       if (typeof body.thresholds.answer === 'number') answerThreshold = body.thresholds.answer;
+    }
+    if (typeof body.refusal_message === 'string' && body.refusal_message) {
+      REFUSAL = body.refusal_message;
     }
   } catch (err) {
     el.dataset.state = 'degraded';

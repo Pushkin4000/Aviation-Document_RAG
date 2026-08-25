@@ -59,6 +59,11 @@ class AviationRAGEngine:
         try:
             embeddings = build_embeddings(self.settings)
             verify_dimension(embeddings, self.settings.embedding_dimension, directory)
+            # MIN-5: allow_dangerous_deserialization is safe here because
+            # `directory` is the repo/operator-controlled vectorstore, not
+            # user-supplied input -- it is built by ingest.py from the
+            # committed corpus, never from a request. Do not widen this to
+            # any user- or network-supplied path without re-litigating it.
             store = FAISS.load_local(directory, embeddings, allow_dangerous_deserialization=True)
         except EmbeddingsUnavailable as exc:
             self.degraded_reason = str(exc)

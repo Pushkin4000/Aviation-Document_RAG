@@ -34,8 +34,15 @@ class Verdict:
     method: str
 
 
-def _cache_key(question: str, answer: str, expected: str) -> str:
-    return hashlib.sha256(f"{question}|{answer}|{expected}".encode("utf-8")).hexdigest()[:32]
+def _cache_key(question: str, answer: str, expected: str, discriminator: str) -> str:
+    # MIN-4: the discriminator (which judge path this call would take, and
+    # which model) must be part of the key. Without it, a cached
+    # lexical-fallback verdict from a no-key run silently keeps being
+    # returned after a valid GROQ_API_KEY is supplied -- the re-run looks
+    # like it used the LLM judge but is actually replaying stale
+    # lexical-fallback output.
+    payload = f"{question}|{answer}|{expected}|{discriminator}"
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:32]
 
 
 def _cache_get(key: str) -> Optional[Verdict]:
@@ -133,7 +140,8 @@ def judge(
     cited_context: str,
     settings: Settings,
 ) -> Verdict:
-    key = _cache_key(question, answer, expected_answer or "")
+    discriminator = f"llm:{settings.judge_model}" if settings.groq_api_key else "lexical-fallback"
+    key = _cache_key(question, answer, expected_answer or "", discriminator)
     cached = _cache_get(key)
     if cached:
         return cached

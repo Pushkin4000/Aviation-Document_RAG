@@ -5,7 +5,7 @@ import hashlib
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import FAISS
@@ -24,7 +24,6 @@ EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 CHUNK_SIZE = 900
 CHUNK_OVERLAP = 150
 FILTER_EXERCISE_CHUNKS = os.getenv("RAG_FILTER_EXERCISE_CHUNKS", "1").strip() != "0"
-HF_LOCAL_FILES_ONLY = os.getenv("HF_LOCAL_FILES_ONLY", "1").strip() != "0"
 
 
 @dataclass
@@ -171,6 +170,9 @@ def _bootstrap_registry_from_index(output_path: Path, embeddings) -> Dict[str, D
     if not (output_path / "index.faiss").exists():
         return {}
     try:
+        # MIN-5: safe -- output_path is the repo/operator-controlled
+        # vectorstore directory (ingest's own output), not user- or
+        # request-supplied input.
         store = FAISS.load_local(str(output_path), embeddings, allow_dangerous_deserialization=True)
     except Exception as exc:
         logger.warning("Could not bootstrap registry from index: %s: %s", type(exc).__name__, exc)
@@ -225,6 +227,8 @@ def create_or_update_vectorstore(
     if rebuild or not index_file.exists():
         store = FAISS.from_documents(new_chunks, embeddings)
     else:
+        # MIN-5: safe -- output_path is the repo/operator-controlled
+        # vectorstore directory, not user- or request-supplied input.
         store = FAISS.load_local(
             str(output_path),
             embeddings,
@@ -251,10 +255,22 @@ def _write_manifest(summary: IngestSummary) -> None:
 
 
 def ingest_pipeline(
-    data_dir: str = DATA_DIR,
-    vectorstore_dir: str = VECTORSTORE_DIR,
+    data_dir: Optional[str] = None,
+    vectorstore_dir: Optional[str] = None,
     rebuild: bool = False,
 ) -> IngestSummary:
+    # MIN-2/IMP-5: default from the real Settings, not the module-level
+    # DATA_DIR/VECTORSTORE_DIR constants. Those constants ignore
+    # RAG_DATA_DIR/RAG_VECTORSTORE_DIR, so an ingest run with a configured
+    # vectorstore dir would silently write to ./vectorstore while the
+    # engine reads from the configured path -- a split-brain where
+    # /ingest "succeeds" but the running engine never sees the new index.
+    settings = get_settings()
+    if data_dir is None:
+        data_dir = settings.data_dir
+    if vectorstore_dir is None:
+        vectorstore_dir = settings.vectorstore_dir
+
     pages = load_documents(data_dir=data_dir)
     if not pages:
         raise ValueError(f"No PDF pages loaded from '{data_dir}'.")
