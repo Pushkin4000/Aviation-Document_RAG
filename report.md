@@ -31,7 +31,7 @@ artifact of the measurement and are not comparable to the numbers below.**
 - Hallucination rate (of answered): 0.0%  — NOT MEANINGFUL under extractive generation (see below)
 - Refusal recall (out-of-scope correctly refused): 13/15 (86.7%)
 - Refusal precision (refusals that were correct): 55.6%
-- Latency p50 / p95: 230 ms / 459 ms
+- Latency p50 / p95: 182 ms / 389 ms
 
 ### Why faithfulness reads 100.0% here
 
