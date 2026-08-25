@@ -178,3 +178,38 @@ how a day's quota got spent re-running a measurement that had not changed.
   HuggingFace Hub. The Dockerfile bakes the model at build time, so `1` is
   correct in-image; the local default is left permissive so a fresh
   checkout works before the cache is warm.
+
+---
+
+# Addendum — landing page
+
+The spec's Night Cockpit section rules that "nothing animates except the
+stage indicator". A GSAP landing page was requested for public deployment,
+which contradicts that rule head-on. Resolved by splitting the two jobs
+rather than compromising either.
+
+**The console did not change.** `web/index.html` still holds to the rule and
+moved to `/console`. Motion inside an instrument you are reading is noise,
+and that reasoning is unaffected by wanting a landing page.
+
+**`/` is now a separate document that is not an instrument.** It uses scroll
+as a descent — the HUD altitude tape unwinds FL410 to ground across the
+page, the pipeline draws as a flight plan with an aircraft flying the route,
+and the metric dials wind up to measured values. It shares the palette
+verbatim so the two pages read as one system.
+
+**Motion is never the only carrier of meaning.** Every entrance is a
+`gsap.from()`, so the markup's own state is the final state and a blocked CDN
+degrades to a complete static page. The two components that start empty —
+dial arcs and comparison bars — have an explicit `applyStaticFallback()`,
+which is also the `prefers-reduced-motion` path.
+
+**The landing page reports live health rather than a fixed claim.** Its HUD
+status line reads `/health` and shows the real index state and generation
+path, so a degraded deployment advertises itself instead of showing a boast
+that was true when the HTML was written.
+
+**The published figures include the bad one.** The 10.3% hallucination rate
+sits in the instrument panel next to the wins, in refusal red. Omitting it
+would have been the natural landing-page move and would have undone the
+point of the honest-evaluation work.

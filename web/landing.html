@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIRMAN — Document-Grounded Retrieval for Aviation</title>
+<meta name="description" content="A retrieval system over 6,590 chunks of EASA ATPL material that cites every claim and refuses when the documents are silent.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;900&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/landing.css">
+</head>
+<body>
+
+<!-- ============ FIXED HUD OVERLAY ============ -->
+<!-- Scrolling the page is a descent: the altitude tape unwinds FL410 -> GND. -->
+<div class="hud" aria-hidden="true">
+  <svg class="hud-brackets" viewBox="0 0 100 100" preserveAspectRatio="none">
+    <path class="br" d="M2,10 L2,2 L10,2"/>
+    <path class="br" d="M90,2 L98,2 L98,10"/>
+    <path class="br" d="M98,90 L98,98 L90,98"/>
+    <path class="br" d="M10,98 L2,98 L2,90"/>
+  </svg>
+
+  <div class="hud-heading">
+    <div class="tape-window"><div class="tape-strip" id="hdgStrip"></div></div>
+    <div class="tape-caret"></div>
+  </div>
+
+  <div class="hud-alt">
+    <span class="hud-label">ALT</span>
+    <span class="hud-value" id="altValue">41000</span>
+    <div class="alt-track"><div class="alt-fill" id="altFill"></div></div>
+    <span class="hud-label" id="altPhase">CRUISE</span>
+  </div>
+
+  <div class="hud-status">
+    <span class="dot" id="statusDot"></span>
+    <span id="statusText">LINK…</span>
+  </div>
+</div>
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="hero">
+  <canvas id="sky"></canvas>
+  <div class="horizon-glow"></div>
+
+  <div class="hero-inner" id="heroInner">
+    <div class="hero-eyebrow">
+      <span class="tick"></span>
+      <span>EASA ATPL CORPUS · 6,590 VECTORS · RETRIEVAL-AUGMENTED</span>
+    </div>
+
+    <h1 class="wordmark" id="wordmark" aria-label="AIRMAN"><span class="ch">A</span><span class="ch">I</span><span class="ch">R</span><span class="ch">M</span><span class="ch">A</span><span class="ch">N</span></h1>
+
+    <p class="hero-lede" id="heroLede">
+      It answers from the documents, cites the page, and says
+      <em>nothing</em> when the documents say nothing.
+    </p>
+
+    <div class="hero-actions" id="heroActions">
+      <a class="btn btn-primary" href="/console">
+        <span>OPEN CONSOLE</span>
+        <svg viewBox="0 0 24 24" class="btn-ico"><path d="M4 12h15M13 6l6 6-6 6"/></svg>
+      </a>
+      <a class="btn btn-ghost" href="#pipeline">SEE THE PIPELINE</a>
+    </div>
+  </div>
+
+  <div class="scroll-cue" id="scrollCue">
+    <span>BEGIN DESCENT</span>
+    <div class="cue-rail"><div class="cue-dot"></div></div>
+  </div>
+</section>
+
+<!-- ============ THE RULE ============ -->
+<section class="rule-sec" id="rule">
+  <div class="sec-tag"><span>01</span> THE HARD RULE</div>
+  <p class="rule-copy" id="ruleCopy">Most retrieval systems answer anyway. <em>This one stops.</em></p>
+
+  <div class="refusal-card" id="refusalCard">
+    <div class="refusal-bar"></div>
+    <div class="refusal-body">
+      <div class="refusal-label">VERBATIM RESPONSE WHEN EVIDENCE IS INSUFFICIENT</div>
+      <div class="refusal-text">This information is not available in the provided document(s).</div>
+      <div class="refusal-meta">
+        <span>REFUSAL RECALL <b>100%</b></span>
+        <span>REFUSAL PRECISION <b>73.1%</b></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PIPELINE / FLIGHT PLAN ============ -->
+<section class="pipeline" id="pipeline">
+  <div class="pipe-sticky">
+    <div class="sec-tag"><span>02</span> FLIGHT PLAN — QUERY TO CITATION</div>
+
+    <svg class="route" viewBox="0 0 1000 210" preserveAspectRatio="xMidYMid meet">
+      <path id="routeGhost" class="route-ghost" d="M60,150 C180,150 190,60 300,60 C420,60 430,150 545,150 C660,150 670,55 790,55 C880,55 900,110 940,110"/>
+      <path id="routePath" class="route-line" d="M60,150 C180,150 190,60 300,60 C420,60 430,150 545,150 C660,150 670,55 790,55 C880,55 900,110 940,110"/>
+      <g class="waypoints">
+        <g class="wp" transform="translate(60,150)"><circle class="wp-ring" r="16"/><path class="wp-mark" d="M0,-8 L7,6 L-7,6 Z"/></g>
+        <g class="wp" transform="translate(300,60)"><circle class="wp-ring" r="16"/><path class="wp-mark" d="M0,-8 L7,6 L-7,6 Z"/></g>
+        <g class="wp" transform="translate(545,150)"><circle class="wp-ring" r="16"/><path class="wp-mark" d="M0,-8 L7,6 L-7,6 Z"/></g>
+        <g class="wp" transform="translate(790,55)"><circle class="wp-ring" r="16"/><path class="wp-mark" d="M0,-8 L7,6 L-7,6 Z"/></g>
+        <g class="wp" transform="translate(940,110)"><circle class="wp-ring" r="16"/><path class="wp-mark" d="M0,-8 L7,6 L-7,6 Z"/></g>
+      </g>
+      <g id="aircraft" class="aircraft">
+        <path d="M0,-11 L4,-1 L14,4 L14,7 L3,5 L2,11 L6,14 L6,16 L0,14 L-6,16 L-6,14 L-2,11 L-3,5 L-14,7 L-14,4 L-4,-1 Z"/>
+      </g>
+    </svg>
+
+    <div class="stages-grid" id="stagesGrid">
+      <article class="stg">
+        <div class="stg-n">WPT 01</div><h3>RETRIEVE</h3>
+        <p>FAISS over 6,590 MiniLM vectors, cross-checked by lexical overlap. Two signals, one shortlist.</p>
+      </article>
+      <article class="stg">
+        <div class="stg-n">WPT 02</div><h3>ROUTE</h3>
+        <p>The question is scored for complexity and sent to the model that fits it. Cheap questions stay cheap.</p>
+      </article>
+      <article class="stg">
+        <div class="stg-n">WPT 03</div><h3>GENERATE</h3>
+        <p>Groq answers from the retrieved passages alone. If the model declines, that refusal is kept, not overridden.</p>
+      </article>
+      <article class="stg">
+        <div class="stg-n">WPT 04</div><h3>VERIFY</h3>
+        <p>A grounding gate rescores the answer against the chunks it cited. Ungrounded text never reaches you.</p>
+      </article>
+      <article class="stg">
+        <div class="stg-n">WPT 05</div><h3>CITE</h3>
+        <p>Every claim lands with a document and a page number. Open the source and check the work.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ INSTRUMENTS / METRICS ============ -->
+<section class="instruments" id="instruments">
+  <div class="sec-tag"><span>03</span> INSTRUMENT PANEL</div>
+  <div class="gauge-row">
+    <div class="gauge-cell" data-val="77.3">
+      <svg class="dial" viewBox="0 0 120 120"><circle class="dial-bg" cx="60" cy="60" r="50"/><circle class="dial-arc" cx="60" cy="60" r="50"/></svg>
+      <div class="dial-read"><span class="num">0</span><span class="sfx">%</span></div>
+      <div class="dial-cap">RETRIEVAL RECALL @ K</div>
+    </div>
+    <div class="gauge-cell" data-val="48.0">
+      <svg class="dial" viewBox="0 0 120 120"><circle class="dial-bg" cx="60" cy="60" r="50"/><circle class="dial-arc" cx="60" cy="60" r="50"/></svg>
+      <div class="dial-read"><span class="num">0</span><span class="sfx">%</span></div>
+      <div class="dial-cap">ANSWER CORRECTNESS</div>
+    </div>
+    <div class="gauge-cell" data-val="100">
+      <svg class="dial" viewBox="0 0 120 120"><circle class="dial-bg" cx="60" cy="60" r="50"/><circle class="dial-arc" cx="60" cy="60" r="50"/></svg>
+      <div class="dial-read"><span class="num">0</span><span class="sfx">%</span></div>
+      <div class="dial-cap">REFUSAL RECALL</div>
+    </div>
+    <div class="gauge-cell warn" data-val="10.3">
+      <svg class="dial" viewBox="0 0 120 120"><circle class="dial-bg" cx="60" cy="60" r="50"/><circle class="dial-arc" cx="60" cy="60" r="50"/></svg>
+      <div class="dial-read"><span class="num">0</span><span class="sfx">%</span></div>
+      <div class="dial-cap">HALLUCINATION RATE</div>
+    </div>
+  </div>
+  <p class="instr-note">
+    Published because it is real. That 10.3% is the first hallucination rate this
+    project has honestly measured — the 0.0% it used to report was an artifact of
+    scoring extracted text against the text it was extracted from.
+  </p>
+</section>
+
+<!-- ============ COMPARISON ============ -->
+<section class="compare" id="compare">
+  <div class="sec-tag"><span>04</span> WHAT THE MODEL BOUGHT</div>
+  <div class="cmp-head"><span>METRIC</span><span class="lg-a">EXTRACTIVE</span><span class="lg-b">GROQ</span></div>
+  <div class="cmp-rows" id="cmpRows">
+    <div class="cmp-row" data-a="18.0" data-b="48.0">
+      <span class="cmp-k">Correctness</span>
+      <div class="bars"><div class="bar a"><i></i><b>18.0%</b></div><div class="bar b"><i></i><b>48.0%</b></div></div>
+    </div>
+    <div class="cmp-row" data-a="86.7" data-b="100">
+      <span class="cmp-k">Refusal recall</span>
+      <div class="bars"><div class="bar a"><i></i><b>86.7%</b></div><div class="bar b"><i></i><b>100%</b></div></div>
+    </div>
+    <div class="cmp-row" data-a="56.0" data-b="73.1">
+      <span class="cmp-k">Refusal precision</span>
+      <div class="bars"><div class="bar a"><i></i><b>56.0%</b></div><div class="bar b"><i></i><b>73.1%</b></div></div>
+    </div>
+    <div class="cmp-row cost-row" data-a="8" data-b="97">
+      <span class="cmp-k">Latency p50</span>
+      <div class="bars"><div class="bar a"><i></i><b>1.0 s</b></div><div class="bar b"><i></i><b>11.7 s</b></div></div>
+    </div>
+  </div>
+  <p class="cmp-note">The last row is the price, not a win. Twelve seconds is what correctness costs here, and it belongs next to the gains rather than under them.</p>
+</section>
+
+<!-- ============ CORPUS ============ -->
+<section class="corpus" id="corpus">
+  <div class="sec-tag"><span>05</span> INDEXED LIBRARY</div>
+  <div class="marquee">
+    <div class="mq-track" id="mqTrack">
+      <span>METEOROLOGY</span><i>◆</i><span>GENERAL NAVIGATION</span><i>◆</i><span>RADIO NAVIGATION</span><i>◆</i><span>MASS &amp; BALANCE</span><i>◆</i><span>FLIGHT PLANNING</span><i>◆</i><span>AIR REGULATION</span><i>◆</i><span>INSTRUMENTS</span><i>◆</i>
+    </div>
+  </div>
+  <div class="corpus-stats" id="corpusStats">
+    <div><b data-count="7">0</b><span>SOURCE DOCUMENTS</span></div>
+    <div><b data-count="6590">0</b><span>INDEXED CHUNKS</span></div>
+    <div><b data-count="384">0</b><span>EMBEDDING DIMENSIONS</span></div>
+    <div><b data-count="102">0</b><span>PASSING TESTS</span></div>
+  </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<section class="cta" id="cta">
+  <div class="cta-radar"><span></span><span></span><span></span><em id="sweep"></em></div>
+  <h2 class="cta-h">Ask it something<br>it cannot answer.</h2>
+  <p class="cta-p">The interesting behaviour is the refusal. Try a question the EASA syllabus never covers, and watch it decline instead of inventing.</p>
+  <a class="btn btn-primary big" href="/console">
+    <span>OPEN THE CONSOLE</span>
+    <svg viewBox="0 0 24 24" class="btn-ico"><path d="M4 12h15M13 6l6 6-6 6"/></svg>
+  </a>
+</section>
+
+<footer class="foot">
+  <span>AIRMAN · DOCUMENT-GROUNDED RETRIEVAL</span>
+  <span id="footHealth">—</span>
+  <a href="/docs">API REFERENCE</a>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/MotionPathPlugin.min.js"></script>
+<script src="/static/landing.js"></script>
+</body>
+</html>

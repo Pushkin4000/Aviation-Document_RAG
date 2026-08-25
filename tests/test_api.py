@@ -79,6 +79,29 @@ def test_frontend_is_served(client):
     assert "text/html" in r.headers["content-type"]
 
 
+def test_landing_page_is_at_root_and_links_to_the_console(client):
+    """`/` is the landing page; the query console moved to `/console`. The
+    link between them is the only route a visitor has to the working
+    instrument, so a broken href strands them on a brochure."""
+    body = client.get("/").text
+    assert "AIRMAN" in body
+    assert 'href="/console"' in body
+
+
+def test_console_is_served(client):
+    r = client.get("/console")
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+    assert 'id="question"' in r.text
+
+
+def test_landing_static_assets_are_reachable(client):
+    """The landing page is three files; a missing one renders it unstyled or
+    inert rather than failing loudly."""
+    for asset in ("landing.css", "landing.js"):
+        assert client.get(f"/static/{asset}").status_code == 200
+
+
 def test_ask_response_exposes_which_generator_answered(client):
     """Regression: `generation_path` was absent from AskResponse, so
     FastAPI's response_model stripped it from every reply. /health reports

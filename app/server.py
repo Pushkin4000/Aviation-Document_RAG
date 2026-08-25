@@ -114,6 +114,13 @@ def ask_question(request: AskRequest) -> AskResponse:
 
 @app.get("/")
 def index() -> FileResponse:
+    """Animated landing page. The working instrument lives at /console."""
+    return FileResponse(WEB_DIR / "landing.html")
+
+
+@app.get("/console")
+def console() -> FileResponse:
+    """The Night Cockpit query console — the page that actually queries /ask."""
     return FileResponse(WEB_DIR / "index.html")
 
 

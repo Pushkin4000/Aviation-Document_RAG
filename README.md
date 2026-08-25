@@ -115,7 +115,7 @@ responsibility:
 | `app/grounding.py` | Post-hoc check that a generated answer is actually supported by its cited chunk (fuzzy similarity + token overlap). |
 | `app/engine.py` | `AviationRAGEngine` — orchestrates retrieve → route → generate → ground → decide; lazy index load at first use (or explicit startup), not at import time. |
 | `app/judge.py` | LLM-as-judge (with lexical fallback and on-disk cache) used only by `evaluate.py`, never in the request path. |
-| `app/server.py` | FastAPI app: `/health`, `/ask`, `/ingest`, `/`, static frontend mount. |
+| `app/server.py` | FastAPI app: `/health`, `/ask`, `/ingest`, `/`, `/console`, static frontend mount. |
 | `app/graph.py` | Re-export shim kept for import-path compatibility (`from app.graph import ...`). |
 | `app/logging_setup.py` | Idempotent logging configuration. |
 
@@ -390,9 +390,31 @@ a single warm accent and offers no light theme.
 | Grounded | `--grounded` | `#99A668` |
 | Caution | `--caution` | `#D7A03D` |
 
+There are two pages, sharing one palette:
+
+| Route | File | Purpose |
+|---|---|---|
+| `GET /` | `web/landing.html` | Animated landing page (GSAP + ScrollTrigger). |
+| `GET /console` | `web/index.html` | The query console — the page that calls `/ask`. |
+
 Served as static files mounted directly by FastAPI (`app/server.py`) — no
-bundler, no build step. `GET /` returns `web/index.html`; `web/app.js` and
-`web/styles.css` are mounted at `/static`.
+bundler, no build step; `web/` is mounted at `/static`. GSAP loads from a CDN
+and is the page's only third-party dependency.
+
+**The landing page animates; the console does not.** The console holds to the
+original rule that nothing moves except the stage indicator, because motion in
+an instrument you are reading is noise. The landing page is not an instrument,
+so it uses scroll as a descent: the HUD altitude tape unwinds FL410 to ground
+across the document, the RAG pipeline draws as a flight plan with an aircraft
+flying the route, and the metric dials wind up to the measured figures — the
+10.3% hallucination rate included, in the refusal red rather than the accent.
+
+Motion never carries meaning on its own. Every entrance is a `gsap.from()`, so
+a blocked CDN leaves the page complete rather than blank, and the two
+components that do start empty (dial arcs, comparison bars) have an explicit
+no-GSAP fallback. `prefers-reduced-motion: reduce` takes the same path. The
+HUD's status readout is live: it reads `/health`, so the landing page reports
+the real index state and generation path rather than a hardcoded boast.
 
 ## 8. Deployment
 
