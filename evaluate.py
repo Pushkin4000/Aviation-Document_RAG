@@ -121,7 +121,7 @@ def evaluate_out_of_scope(engine) -> List[Dict]:
     return rows
 
 
-def build_report(df: pd.DataFrame, oos: pd.DataFrame, method: str) -> str:
+def build_report(df: pd.DataFrame, oos: pd.DataFrame, method: str, generation_mode: str) -> str:
     total = len(df)
     answered = df[~df["refused"]]
     n_answered = len(answered)
@@ -170,6 +170,48 @@ def build_report(df: pd.DataFrame, oos: pd.DataFrame, method: str) -> str:
             for _, r in rows.iterrows()
         )
 
+    # Under extractive generation every answer is a verbatim span of its cited
+    # chunk, so judging it against that same chunk cannot fail — faithfulness
+    # reads ~100% by construction, not because the system is demonstrably
+    # non-hallucinating. Say so on the report's face rather than let the
+    # number speak for itself; that silent misreading is what this branch
+    # exists to stop.
+    extractive = generation_mode.strip().lower() != "groq"
+    not_meaningful_suffix = "  — NOT MEANINGFUL under extractive generation (see below)" if extractive else ""
+
+    extractive_section = ""
+    if extractive:
+        row28 = df[df["id"] == 28]
+        row28_note = ""
+        if len(row28):
+            r = row28.iloc[0]
+            row28_note = (
+                f"\nRow 28 (\"{r['question']}\") shows the failure mode this leaves standing: "
+                f"the answer is a faithful, verbatim quote from its cited chunk "
+                f"(`faithful={r['faithful']}`) but does not answer the question "
+                f"(`correct={r['correct']}`, {r['judge_reason']}). A faithful quote is not "
+                "the same thing as a correct answer — closing that gap is what the "
+                "correctness metric is for.\n"
+            )
+        extractive_section = f"""
+### Why faithfulness reads {faithful_rate:.1f}% here
+
+This run used `RAG_GENERATION_MODE=extractive`, so every answer is a verbatim
+span copied out of its cited chunk. Checking such an answer against that same
+chunk cannot fail — support is ~1.00 by construction — so the faithfulness and
+hallucination figures above are structural, not earned, and must not be read
+as evidence the system does not hallucinate.
+{row28_note}
+The metric becomes informative only under `RAG_GENERATION_MODE=groq`, where the
+model can introduce claims absent from the retrieved context. That path is
+implemented and unit-tested but was not exercised in this run: the configured
+GROQ_API_KEY is rejected with HTTP 401, so generation fell back to extraction
+and every judge verdict used the lexical fallback.
+
+The metrics that do carry signal for this run are **retrieval recall@k**,
+**answer correctness**, and the **refusal** figures.
+"""
+
     return f"""# Evaluation Report
 
 Grading method: **{method}**
@@ -199,12 +241,12 @@ artifact of the measurement and are not comparable to the numbers below.**
 ## Metrics
 - Retrieval recall@k: {retrieval_rate:.1f}%
 - Answer correctness: {correctness:.1f}%
-- Faithfulness (of answered): {faithful_rate:.1f}%
-- Hallucination rate (of answered): {halluc_rate:.1f}%
+- Faithfulness (of answered): {faithful_rate:.1f}%{not_meaningful_suffix}
+- Hallucination rate (of answered): {halluc_rate:.1f}%{not_meaningful_suffix}
 - Refusal recall (out-of-scope correctly refused): {oos_refused}/{oos_total} ({refusal_recall:.1f}%)
 - Refusal precision (refusals that were correct): {refusal_precision:.1f}%
 - Latency p50 / p95: {p50:.0f} ms / {p95:.0f} ms
-
+{extractive_section}
 ## Metrics by Question Type
 {chr(10).join(type_lines) if type_lines else "- none"}
 
@@ -237,7 +279,9 @@ def run_evaluation() -> None:
 
     methods = set(df["judge_method"]) - {"rule"}
     method = ", ".join(sorted(methods)) if methods else "rule-only"
-    Path(REPORT_FILE).write_text(build_report(df, oos, method), encoding="utf-8")
+    Path(REPORT_FILE).write_text(
+        build_report(df, oos, method, settings.generation_mode), encoding="utf-8"
+    )
     print(f"Saved {DETAIL_FILE} and {REPORT_FILE}")
 
 

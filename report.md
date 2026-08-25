@@ -27,11 +27,30 @@ artifact of the measurement and are not comparable to the numbers below.**
 ## Metrics
 - Retrieval recall@k: 68.0%
 - Answer correctness: 20.0%
-- Faithfulness (of answered): 100.0%
-- Hallucination rate (of answered): 0.0%
+- Faithfulness (of answered): 100.0%  — NOT MEANINGFUL under extractive generation (see below)
+- Hallucination rate (of answered): 0.0%  — NOT MEANINGFUL under extractive generation (see below)
 - Refusal recall (out-of-scope correctly refused): 13/15 (86.7%)
 - Refusal precision (refusals that were correct): 55.6%
-- Latency p50 / p95: 215 ms / 485 ms
+- Latency p50 / p95: 230 ms / 459 ms
+
+### Why faithfulness reads 100.0% here
+
+This run used `RAG_GENERATION_MODE=extractive`, so every answer is a verbatim
+span copied out of its cited chunk. Checking such an answer against that same
+chunk cannot fail — support is ~1.00 by construction — so the faithfulness and
+hallucination figures above are structural, not earned, and must not be read
+as evidence the system does not hallucinate.
+
+Row 28 ("What immediate planning impact does a strong forecast headwind have on PNR calculations?") shows the failure mode this leaves standing: the answer is a faithful, verbatim quote from its cited chunk (`faithful=True`) but does not answer the question (`correct=False`, key-fact recall 0.00, similarity to reference 0.28, token support from cited context 1.00). A faithful quote is not the same thing as a correct answer — closing that gap is what the correctness metric is for.
+
+The metric becomes informative only under `RAG_GENERATION_MODE=groq`, where the
+model can introduce claims absent from the retrieved context. That path is
+implemented and unit-tested but was not exercised in this run: the configured
+GROQ_API_KEY is rejected with HTTP 401, so generation fell back to extraction
+and every judge verdict used the lexical fallback.
+
+The metrics that do carry signal for this run are **retrieval recall@k**,
+**answer correctness**, and the **refusal** figures.
 
 ## Metrics by Question Type
 - **applied** (n=20): retrieval 40.0%, correct 15.0%, faithful 100.0%
