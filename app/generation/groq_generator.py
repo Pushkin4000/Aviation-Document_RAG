@@ -1,3 +1,4 @@
+import time
 from typing import Any, Dict, List
 
 from app.config import Settings
@@ -22,6 +23,31 @@ def _build_context(chunks: List[RetrievedChunk], limit: int = 5) -> str:
         f"Chunk ID: {c.chunk_id}\nSource: {c.source} (Page {c.page})\nContent: {c.document.page_content}"
         for c in chunks[:limit]
     )
+
+
+def _retry_after_seconds(exc: Exception) -> float:
+    """Seconds the provider asked us to wait, or 0.0 if it did not say."""
+    for attr in ("retry_after", "retry_after_seconds"):
+        value = getattr(exc, attr, None)
+        if isinstance(value, (int, float)) and value >= 0:
+            return float(value)
+    response = getattr(exc, "response", None)
+    headers = getattr(response, "headers", None) or {}
+    for header in ("retry-after", "x-ratelimit-reset-tokens"):
+        raw = headers.get(header)
+        if raw is None:
+            continue
+        try:
+            return float(str(raw).rstrip("s"))
+        except ValueError:
+            continue
+    return 0.0
+
+
+def _is_rate_limit(exc: Exception) -> bool:
+    if type(exc).__name__ == "RateLimitError":
+        return True
+    return getattr(getattr(exc, "response", None), "status_code", None) == 429
 
 
 def _invoke_chain(question: str, context: str, model_name: str, settings: Settings) -> Dict[str, Any]:
@@ -54,11 +80,29 @@ def generate_with_groq(
     if not chunks:
         return GenerationResult.unavailable()
 
-    try:
-        response = _invoke_chain(question, _build_context(chunks), model_name, settings)
-    except Exception as exc:
-        logger.warning("Groq generation failed (%s: %s)", type(exc).__name__, exc)
-        return GenerationResult.unavailable()
+    context = _build_context(chunks)
+    for attempt in range(settings.groq_max_retries + 1):
+        try:
+            response = _invoke_chain(question, context, model_name, settings)
+            break
+        except Exception as exc:
+            last_attempt = attempt == settings.groq_max_retries
+            if last_attempt or not _is_rate_limit(exc):
+                logger.warning("Groq generation failed (%s: %s)", type(exc).__name__, exc)
+                return GenerationResult.unavailable()
+            # Back off only for a wait we are willing to sit through. The
+            # daily-cap 429 asks for minutes; that is not a blip, so fall
+            # back to extraction immediately instead of stalling the caller.
+            wait = _retry_after_seconds(exc) or (2.0 ** attempt)
+            if wait > settings.groq_retry_max_wait_seconds:
+                logger.warning(
+                    "Groq rate limit needs %.0fs (> %.0fs cap), falling back without retry",
+                    wait,
+                    settings.groq_retry_max_wait_seconds,
+                )
+                return GenerationResult.unavailable()
+            logger.info("Groq rate limited, retrying in %.1fs (attempt %d)", wait, attempt + 1)
+            time.sleep(wait)
 
     if not isinstance(response, dict):
         logger.warning("Groq returned a non-object response: %r", type(response).__name__)

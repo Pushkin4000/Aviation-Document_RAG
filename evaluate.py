@@ -243,11 +243,11 @@ hallucination figures above are structural for those rows, not earned, and
 must not be read as evidence the system does not hallucinate.
 {row28_note}
 The metric becomes informative only for rows generated via Groq, where the
-model is free to introduce claims absent from the retrieved context. That
-path is implemented and unit-tested but has never been exercised
-end-to-end in this environment: the configured GROQ_API_KEY is rejected
-with HTTP 401, so every Groq call falls back to extraction and every judge
-verdict used the lexical fallback.
+model is free to introduce claims absent from the retrieved context. Rows
+fall back to extraction when a Groq call cannot complete -- most commonly
+because the free tier's tokens-per-day cap has been reached, which returns
+HTTP 429 and degrades to extraction by design. If most rows in this run are
+extractive, check the run log for 429s before reading the number.
 
 The metrics that do carry signal for this run are **retrieval recall@k**,
 **answer correctness**, and the **refusal** figures.
@@ -286,20 +286,28 @@ the reference vocabulary. Faithfulness carries the same "structural" caveat
 under extractive generation (below); correctness does not have a structural
 excuse, only this measurement-fidelity one.
 
-**On the grounding gate (CRIT-1).** `is_grounded`'s default thresholds
-(similarity 0.65, token overlap 0.58) were calibrated for verbatim
-extraction and reject most correct paraphrases -- only 10/41 (24.4%) of
-this evaluation set's own reference answers pass them. Since
-`RAG_GENERATION_MODE` defaults to `groq`, that would have refused most
-correct Groq answers in production; this was invisible to prior review
-because the configured `GROQ_API_KEY` returns HTTP 401, so the Groq path
-has never run end-to-end. A second, looser pair now applies only to
-answers actually produced by Groq (similarity 0.45, overlap 0.58),
-empirically chosen to admit 32/41 (78.0%) of the reference answers while
-still rejecting invented and off-topic text. This run's own generation
-path (see the section below) is extractive, so it exercises the strict
-pair only -- the abstractive pair is not exercised by this report and has
-not been validated against real Groq output.
+**On the grounding gate.** `is_grounded` applies two threshold pairs. The
+strict pair (similarity 0.65, token overlap 0.58) is calibrated for verbatim
+extraction. A separate, looser pair applies to answers produced by Groq,
+which paraphrases rather than copies.
+
+The abstractive pair was recalibrated on 2026-08-25 against 37 real Groq
+answers -- the first run after a working API key arrived. Each answer was
+scored against the chunks it actually cited (grounded) and against chunks
+retrieved for an unrelated question (ungrounded). Token overlap separates
+the two cleanly; fuzzy similarity barely separates them at all:
+
+| | grounded | ungrounded |
+|---|---|---|
+| token overlap | min 0.24, median 0.55 | median 0.09, **max 0.33** |
+| similarity | min 0.48 | max 0.56 |
+
+Overlap 0.35 is therefore the highest threshold admitting **0.0%** of
+ungrounded answers, and it admits 81.1% of grounded ones. The previous
+value of 0.58 admitted only 37.8%: in the first end-to-end Groq run it
+rejected 14 of 50 correct, well-cited answers and eliminated the entire
+`reasoning` category. Similarity stays at 0.45 as a weak backstop, since
+the measurement shows it does little discriminating work here.
 
 ## Dataset
 - In-scope questions: {total}
