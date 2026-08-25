@@ -6,7 +6,7 @@ A document-grounded RAG service that answers questions strictly from a corpus
 of aviation training PDFs (PPL/CPL/ATPL theory, SOPs, meteorology, flight
 planning) and cites the source document and page for every claim. Retrieval
 combines a FAISS vector index with a lexical fallback; generation is either
-Groq-hosted (`llama-3.3-70b-versatile`, JSON-constrained, context-only) or a
+Groq-hosted (`openai/gpt-oss-120b`, JSON-constrained, context-only) or a
 local extractive path that returns a verbatim, cleaned span of the cited
 chunk. When the retrieved evidence does not support an answer, the service
 refuses rather than guesses, returning exactly:
@@ -64,16 +64,16 @@ below match the code, not aspiration.
 | `RAG_CONFIDENCE_ANSWER_THRESHOLD` | `0.48` | Confidence at/above which the system answers outright. |
 | `RAG_CONFIDENCE_CLARIFY_THRESHOLD` | `0.34` | Confidence below which the system refuses outright; between this and the answer threshold it clarifies or salvages (see below). |
 | `RAG_LOW_CONFIDENCE_SUPPORT_THRESHOLD` | `0.66` | In the clarify band, an answer is returned anyway if its grounding support exceeds this. |
-| `RAG_GENERATION_MODE` | `groq` | `groq` or `extractive`. `generation_path` in `/health` reports `extractive` whenever no `GROQ_API_KEY` is present, regardless of this setting — but that check only tests *presence*, not validity: a present-but-invalid key (as in this environment) still reports `groq` in `/health` and only falls back to extractive per-request, after each Groq call fails. See Known Limitations. |
+| `RAG_GENERATION_MODE` | `groq` | `groq` or `extractive`. `generation_path` in `/health` reports `extractive` whenever no `GROQ_API_KEY` is present, regardless of this setting — but that check only tests *presence*, not validity: a present-but-rejected key still reports `groq` in `/health` and only falls back to extractive per-request, after each Groq call fails. The same is true when the daily token cap is reached. See Known Limitations. |
 | `GROQ_API_KEY` | *(unset)* | Groq API key. Required for the `groq` path to actually run. |
-| `RAG_GROQ_MODEL` | `llama-3.3-70b-versatile` | Model used for generation. |
+| `RAG_GROQ_MODEL` | `openai/gpt-oss-120b` | Model used for generation. |
 | `RAG_GROQ_TIMEOUT_SECONDS` | `30.0` | Groq request timeout. |
 | `RAG_ROUTER_MODE` | `heuristic` | `heuristic` or `groq` (LLM-assisted routing). |
 | `RAG_ROUTER_LLM_ENABLED` | `0` (`False`) | Gate for the LLM router. |
 | `RAG_MODEL_ROUTING_ENABLED` | `0` (`False`) | If set, `simple`/`complex` routes use different Groq models. |
-| `RAG_SIMPLE_MODEL` | `llama-3.1-8b-instant` | Model for the `simple` route when model routing is enabled. |
-| `RAG_COMPLEX_MODEL` | `llama-3.3-70b-versatile` | Model for the `complex` route when model routing is enabled. |
-| `RAG_JUDGE_MODEL` | `llama-3.3-70b-versatile` | Model used by `evaluate.py` to grade correctness/faithfulness. |
+| `RAG_SIMPLE_MODEL` | `openai/gpt-oss-20b` | Model for the `simple` route when model routing is enabled. |
+| `RAG_COMPLEX_MODEL` | `openai/gpt-oss-120b` | Model for the `complex` route when model routing is enabled. |
+| `RAG_JUDGE_MODEL` | `openai/gpt-oss-120b` | Model used by `evaluate.py` to grade correctness/faithfulness. |
 | `RAG_CHUNK_SIZE` | `900` | Characters per chunk at ingestion. |
 | `RAG_CHUNK_OVERLAP` | `150` | Overlap between adjacent chunks. |
 | `RAG_FILTER_EXERCISE_CHUNKS` | `1` (`True`) | Drop question-bank/MCQ-style chunks during ingestion. |
@@ -277,20 +277,38 @@ so they remain marked unanswerable.
   they were refusals, understating precision.
 - **Latency p50/p95** — wall-clock per `/ask` call during the eval run.
 
-**Current honest numbers** (`RAG_GENERATION_MODE=groq` configured, but every
-row in this run actually generated via extraction — see §10 on why —
-from `report.md`):
+**Two sets of numbers, because the generation path changes the answer.**
+Both come from the same 50-question ground-truth set; they differ only in
+which generator produced the answers.
 
-| Metric | Value |
-|---|---|
-| Retrieval recall@k (all 50) | 68.0% |
-| Retrieval recall@k (answerable subset, 44) | 77.3% |
-| Answer correctness | 18.0% — floor under the lexical fallback, see above |
-| Faithfulness (of answered) | 100.0% — **not meaningful**, see below |
-| Hallucination rate (of answered) | 0.0% — **not meaningful**, see below |
-| Refusal recall | 13/15 (86.7%) |
-| Refusal precision (of 25 refusals actually issued) | 14/25 (56.0%) |
-| Latency p50 / p95 | ~228 ms / ~476 ms |
+| Metric | Extractive | Groq (38/39 rows) |
+|---|---|---|
+| Retrieval recall@k (all 50) | 68.0% | 68.0% |
+| Retrieval recall@k (answerable subset, 44) | 77.3% | 77.3% |
+| Answer correctness | 18.0% | **48.0%** |
+| Faithfulness (of answered) | 100.0% — *not meaningful*, see below | 89.7% |
+| Hallucination rate (of answered) | 0.0% — *not meaningful*, see below | 10.3% |
+| Refusal recall | 13/15 (86.7%) | **15/15 (100.0%)** |
+| Refusal precision | 14/25 (56.0%) | **19/26 (73.1%)** |
+| Latency p50 / p95 | ~1.0 s / ~1.5 s | ~11.7 s / ~14.8 s |
+
+Retrieval is identical because both paths share one retriever — only
+generation differs. The Groq column is where the faithfulness figure first
+becomes a real measurement rather than a structural artifact: 38 of its 39
+answered rows were generated by the model, which is free to introduce
+claims the context does not contain. It did so on 10.3% of them. That is
+the first genuine hallucination rate this project has ever measured.
+
+The trade is latency: roughly 1 second becomes roughly 12, because every
+answer now costs a model round trip.
+
+> **Reproducing the Groq column.** It was measured on 2026-08-25 with
+> `openai/gpt-oss-20b` (the free tier's daily token cap on the larger model
+> was exhausted that day). `evaluate.py` degrades to extraction on HTTP 429
+> by design, so a quota-limited run reports mostly-extractive numbers and
+> says so in `report.md`. Check the run log for `rate limit needs` lines
+> before reading any report, and re-run when the cap resets. The `report.md`
+> committed here is from such a degraded run and labels itself accordingly.
 
 **On the 100%/0% faithfulness figures — read this before trusting them.** An
 earlier version of this evaluation compared each answer against the same
@@ -298,23 +316,26 @@ chunk text it had been extracted from, which cannot fail: it always reported
 100% faithfulness and 0% hallucination, regardless of whether the system
 worked. **Those old figures were an artifact of a circular metric, not a
 property of the system, and are not comparable to anything in this
-README.** The rebuilt evaluation still shows 100%/0% here because every
-row in this run was actually generated via extraction (see §10), for a
-legitimate structural reason: an extractive answer is, by construction, a
-verbatim span copied out of its own cited chunk, so checking it against that
-chunk cannot fail either. Faithfulness and hallucination only become
-informative for answers actually generated via Groq, where the model is
-free to introduce claims the context doesn't contain. The metrics that do
-carry real signal in this extractive run are **retrieval recall@k**,
-**answer correctness**, and the **refusal** figures — and a correctness
-score of 18% against an answerable-subset recall of 77% shows the honest gap
-plainly: retrieval mostly finds the right page, but extractive generation
-frequently fails to produce the right answer from it.
+README.** The extractive column still reads 100%/0% for a second and
+entirely different reason: an extractive answer is, by construction, a
+verbatim span copied out of its own cited chunk, so checking it against
+that chunk cannot fail either. The number is structural, not earned, and
+`report.md` labels it as such on its face.
+
+Faithfulness becomes a real measurement only in the Groq column, where the
+model is free to introduce claims the context doesn't contain — and there
+it reads 89.7%, i.e. a **10.3% hallucination rate**. That is the first
+honest hallucination figure this project has produced.
+
+The gap the extractive column exposes is worth stating plainly: 18%
+correctness against 77% answerable-subset retrieval means retrieval
+usually finds the right page while extraction fails to build the right
+answer out of it. Switching generation to Groq closes most of that gap
+(48% correctness on the same questions and the same retrieval), which is
+what the generation path was always for.
 
 **On the numbers that moved from an earlier revision of this README** (all
-changes are corrections, not regressions — see
-`.superpowers/sdd/2026-08-24-airman-rag-overhaul/final-fix-report.md` for
-the full before/after and reasoning):
+changes are corrections, not regressions):
 - **Refusal precision** was published as 55.6% (15/27); the denominator
   counted 2 out-of-scope questions that were *not* refused as if they were
   refusals. Fixing the denominator alone (same ground truth) gives 60.0%
@@ -415,14 +436,24 @@ pytest
   container or checkout built from this repo can serve queries against the
   committed `vectorstore/` but cannot re-ingest until `data/` is supplied
   separately and `POST /ingest` is called.
-- **The configured `GROQ_API_KEY` is invalid** (the key on file returns HTTP
-  401), so `RAG_GENERATION_MODE` is effectively `extractive` in this
-  environment and the Groq generation path — while implemented and covered
-  by unit tests with the network call substituted — has never actually run
-  live end-to-end. All metrics in Section 6 were produced under extractive
-  generation. **To exercise the Groq path:** supply a valid `GROQ_API_KEY`
-  and set `RAG_GENERATION_MODE=groq`; `GET /health`'s `generation_path`
-  field will then read `"groq"` once both are true.
+- **The free tier's daily token cap silently degrades generation.** Groq's
+  free tier allows 200,000 tokens per day *per model*. A full
+  `evaluate.py` run costs roughly 135,000, so two runs in one day exhaust
+  it. Past the cap every call returns HTTP 429 and generation falls back to
+  extraction — safe, but it makes an exhausted quota look like poor answer
+  quality rather than a model that never ran. Calls now retry a brief
+  per-minute limit and, for the multi-minute daily-cap 429, fall back
+  immediately with an explicit `rate limit needs Ns` log line instead of
+  stalling the request. **Check the run log for those lines before reading
+  any `report.md`.**
+- **Groq's Llama 3.x models were retired.** `llama-3.3-70b-versatile` and
+  `llama-3.1-8b-instant` now return 404 `model_not_found`; defaults moved to
+  `openai/gpt-oss-120b` / `openai/gpt-oss-20b`. `qwen/qwen3.6-27b` is
+  available on the same tier but is **not** a drop-in: it emits raw
+  `<think>` reasoning into `content`, which corrupts both the answer and the
+  JSON parse. Note also that `gpt-oss` models spend tokens on reasoning
+  before emitting content, so a low `max_tokens` yields an empty answer
+  rather than a short one — the generator deliberately sets no cap.
 - **The grounding gate's default thresholds were calibrated for extractive,
   verbatim answers, not paraphrase.** `is_grounded` requires similarity
   0.65 and token overlap 0.58 against the cited chunk text — both easily
@@ -431,21 +462,29 @@ pytest
   answerable `evaluation_set.json` reference answers through the extractive
   pair, only 10/41 (24.4%) pass. Because `RAG_GENERATION_MODE` defaults to
   `groq`, the shipping default would have refused most correct Groq
-  answers — this was never caught by any per-task review because the
-  invalid key meant the Groq path was never exercised end-to-end.
-  `is_grounded` now takes an `abstractive` flag and uses a second,
-  separately-configured pair
-  (`RAG_MIN_GROUNDED_SIMILARITY_ABSTRACTIVE`=0.45,
-  `RAG_MIN_GROUNDED_TOKEN_OVERLAP_ABSTRACTIVE`=0.58) whenever the answer
-  actually came from Groq — inferred from which generator produced the
-  result, not from config alone, so a Groq-configured-but-unavailable
-  fallback to extraction is still graded on the strict pair. The
-  abstractive pair was chosen empirically: it admits 32/41 (78.0%) of the
-  same reference answers while still rejecting invented content (e.g. "A
-  cold front always produces severe hail and tornado activity.") and
-  off-topic text run through the same gate. **This pair is calibrated
-  against reference answers, not against real Groq output** — Groq has
-  never run live in this environment, so the pair should be re-verified
-  once a valid key is available. See
-  `.superpowers/sdd/2026-08-24-airman-rag-overhaul/final-fix-report.md` for
-  the full calibration grid and the rejection sanity checks.
+  answers. `is_grounded` now takes an `abstractive` flag and uses a second,
+  separately-configured pair whenever the answer actually came from Groq —
+  inferred from which generator produced the result, not from config alone,
+  so a Groq-configured-but-unavailable fallback to extraction is still
+  graded on the strict pair.
+
+  That abstractive pair was originally calibrated against *reference*
+  answers, which was the best proxy available while the key was dead. The
+  first live run showed the proxy was wrong: it generated good, correctly
+  cited answers and then threw away 14 of 50 at the gate, eliminating the
+  entire `reasoning` category. It has since been recalibrated against 37
+  real Groq answers, each scored against the chunks it cited and against
+  chunks retrieved for an unrelated question:
+
+  | | grounded | ungrounded |
+  |---|---|---|
+  | token overlap | min 0.24, median 0.55 | median 0.09, **max 0.33** |
+  | similarity | min 0.48 | max 0.56 |
+
+  Token overlap separates the two cleanly; fuzzy similarity barely
+  separates them at all. `RAG_MIN_GROUNDED_TOKEN_OVERLAP_ABSTRACTIVE` is
+  therefore **0.35** — the highest value admitting 0.0% of ungrounded
+  answers, while admitting 81.1% of grounded ones (0.58 admitted 37.8%).
+  `RAG_MIN_GROUNDED_SIMILARITY_ABSTRACTIVE` stays at 0.45 as a weak
+  backstop. Replayed over the 37 saved answers, the change rescues 12 and
+  loses none.

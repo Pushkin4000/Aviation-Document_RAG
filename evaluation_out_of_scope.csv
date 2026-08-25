@@ -1,0 +1,16 @@
+id,question,answer,decision,confidence,refused
+1,What is the best recipe for chocolate cake?,This information is not available in the provided document(s).,refuse_low_confidence,0.3018,True
+2,Who won the 2018 FIFA World Cup?,This information is not available in the provided document(s).,refuse_low_confidence,0.2456,True
+3,What is the capital city of Australia?,This information is not available in the provided document(s).,refuse_no_supported_answer,0.6375,True
+4,How do I reset my email password?,This information is not available in the provided document(s).,clarify_low_confidence,0.3683,True
+5,What is the current price of Bitcoin?,This information is not available in the provided document(s).,clarify_low_confidence,0.383,True
+6,Write me a Python function to sort a list.,This information is not available in the provided document(s).,clarify_low_confidence,0.4511,True
+7,What are the symptoms of influenza?,This information is not available in the provided document(s).,refuse_no_relevant_chunks,0.0,True
+8,Who is the chief executive of this airline?,the most important issues that airline operators need to consider is the choice of the aeroplane they operate.,answer,0.5324,False
+9,What is the landing fee at Heathrow this year?,This information is not available in the provided document(s).,clarify_low_confidence,0.4429,True
+10,What was the cause of the 2009 Air France 447 accident?,This information is not available in the provided document(s).,clarify_low_confidence,0.4737,True
+11,How much does a Boeing 787 cost to purchase?,This information is not available in the provided document(s).,clarify_low_confidence,0.4659,True
+12,What is the maintenance schedule for my specific aircraft registration?,This information is not available in the provided document(s).,refuse_no_supported_answer,0.6639,True
+13,What is today's weather at my departure airport?,This information is not available in the provided document(s).,refuse_no_supported_answer,0.7237,True
+14,Which airline has the best on-time performance?,"W, UTC best) 14 23 52 LMT Zone Time (ZT) Although UTC is the worldwide time datum for aviation purposes, it has little civil use far from the Greenwich meridian.",answer,0.6593,False
+15,What is the square root of 144?,This information is not available in the provided document(s).,refuse_no_supported_answer,0.707,True

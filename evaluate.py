@@ -17,6 +17,7 @@ logger = get_logger("evaluate")
 EVAL_FILE = "evaluation_set.json"
 OUT_OF_SCOPE_FILE = "out_of_scope_set.json"
 DETAIL_FILE = "evaluation_detailed.csv"
+OOS_DETAIL_FILE = "evaluation_out_of_scope.csv"
 REPORT_FILE = "report.md"
 
 
@@ -207,16 +208,37 @@ def build_report(df: pd.DataFrame, oos: pd.DataFrame, method: str, generation_mo
     if n_answered:
         extractive_rows = int((answered["generation_path"] != "groq").sum())
         extractive = extractive_rows > 0
+        # An extractive answer is structurally faithful, so extractive rows
+        # inflate faithfulness. Whether that voids the headline depends on
+        # how many there are: when they are the majority the number means
+        # nothing, but a handful merely dilutes an otherwise real
+        # measurement, and disclaiming it outright would understate a Groq
+        # run that genuinely earned its score.
+        extractive_dominates = extractive_rows > n_answered / 2
     else:
         # No answered rows to inspect (e.g. an all-refused run) -- fall
         # back to the configured mode as the best available signal.
         extractive = generation_mode.strip().lower() != "groq"
         extractive_rows = 0
-    not_meaningful_suffix = "  — NOT MEANINGFUL under extractive generation (see below)" if extractive else ""
+        extractive_dominates = extractive
+    # How much the extractive rows distort the figure is a matter of degree,
+    # so say which degree rather than reaching for one blanket disclaimer.
+    extractive_share = (extractive_rows / n_answered) if n_answered else 0.0
+    if extractive_dominates:
+        not_meaningful_suffix = "  — NOT MEANINGFUL under extractive generation (see below)"
+    elif extractive:
+        qualifier = "slightly inflated" if extractive_share < 0.15 else "materially inflated"
+        not_meaningful_suffix = (
+            f"  — {qualifier}: {extractive_rows} of {n_answered} rows"
+            f" ({extractive_share*100:.0f}%) are extractive and structurally"
+            " faithful (see below)"
+        )
+    else:
+        not_meaningful_suffix = ""
 
     extractive_section = ""
     if extractive:
-        row28 = df[df["id"] == 28]
+        row28 = df[(df["id"] == 28) & (df["decision"] == "answer") & (df["generation_path"] != "groq")]
         row28_note = ""
         if len(row28):
             r = row28.iloc[0]
@@ -228,6 +250,16 @@ def build_report(df: pd.DataFrame, oos: pd.DataFrame, method: str, generation_mo
                 "the same thing as a correct answer — closing that gap is what the "
                 "correctness metric is for.\n"
             )
+        verdict_note = (
+            "Because those rows are the majority here, the headline figure above "
+            "must not be read as evidence the system does not hallucinate.\n"
+            if extractive_dominates else
+            f"Because {extractive_rows} of {n_answered} rows ({extractive_share*100:.0f}%) "
+            "are extractive, the headline figure is a real measurement of the Groq "
+            "path, inflated by that minority rather than manufactured by it. The "
+            "larger that share, the more the number drifts toward the structural "
+            "ceiling rather than describing what the model actually did.\n"
+        )
         mix_note = (
             f"{extractive_rows} of {n_answered} answered questions were generated "
             "extractively (the rest via Groq)." if 0 < extractive_rows < n_answered
@@ -239,18 +271,14 @@ def build_report(df: pd.DataFrame, oos: pd.DataFrame, method: str, generation_mo
 {mix_note} An extractive answer is, by construction, a verbatim span copied
 out of its cited chunk. Checking such an answer against that same chunk
 cannot fail — support is ~1.00 by construction — so the faithfulness and
-hallucination figures above are structural for those rows, not earned, and
-must not be read as evidence the system does not hallucinate.
-{row28_note}
-The metric becomes informative only for rows generated via Groq, where the
-model is free to introduce claims absent from the retrieved context. Rows
-fall back to extraction when a Groq call cannot complete -- most commonly
-because the free tier's tokens-per-day cap has been reached, which returns
-HTTP 429 and degrades to extraction by design. If most rows in this run are
-extractive, check the run log for 429s before reading the number.
-
-The metrics that do carry signal for this run are **retrieval recall@k**,
-**answer correctness**, and the **refusal** figures.
+hallucination figures are structural for those rows, not earned.
+{verdict_note}{row28_note}
+The metric is informative for rows generated via Groq, where the model is
+free to introduce claims absent from the retrieved context. Rows fall back
+to extraction when a Groq call cannot complete -- most commonly because the
+free tier's tokens-per-day cap has been reached, which returns HTTP 429 and
+degrades to extraction by design. If most rows in a run are extractive,
+check the run log for rate-limit fallbacks before reading the number.
 """
 
     return f"""# Evaluation Report
@@ -358,14 +386,40 @@ def run_evaluation() -> None:
     df = pd.DataFrame(rows)
     oos = pd.DataFrame(oos_rows)
     df.to_csv(DETAIL_FILE, index=False)
+    oos.to_csv(OOS_DETAIL_FILE, index=False)
+    _write_report(df, oos, settings.generation_mode)
 
+
+def _write_report(df: pd.DataFrame, oos: pd.DataFrame, generation_mode: str) -> None:
     methods = set(df["judge_method"]) - {"rule"}
     method = ", ".join(sorted(methods)) if methods else "rule-only"
     Path(REPORT_FILE).write_text(
-        build_report(df, oos, method, settings.generation_mode), encoding="utf-8"
+        build_report(df, oos, method, generation_mode), encoding="utf-8"
     )
     print(f"Saved {DETAIL_FILE} and {REPORT_FILE}")
 
 
+def rebuild_report() -> None:
+    """Regenerate report.md from the last run's saved rows.
+
+    Every full run costs real API tokens, and the free tier has a daily cap.
+    Editing the report's prose should not require spending that budget again,
+    so the raw per-question rows are persisted and the report is a pure
+    function of them.
+    """
+    for path in (DETAIL_FILE, OOS_DETAIL_FILE):
+        if not Path(path).exists():
+            raise SystemExit(f"{path} not found -- run a full evaluation first.")
+    df = pd.read_csv(DETAIL_FILE)
+    oos = pd.read_csv(OOS_DETAIL_FILE)
+    mode = "groq" if (df.get("generation_path") == "groq").any() else "extractive"
+    _write_report(df, oos, mode)
+
+
 if __name__ == "__main__":
-    run_evaluation()
+    import sys
+
+    if "--report-only" in sys.argv:
+        rebuild_report()
+    else:
+        run_evaluation()
