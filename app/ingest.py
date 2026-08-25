@@ -2,17 +2,21 @@ import json
 import os
 import re
 import hashlib
-import pickle
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.embeddings import SentenceTransformerEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+from app.config import get_settings
+from app.embeddings import build_embeddings
+from app.logging_setup import get_logger
+
+logger = get_logger("ingest")
 
 DATA_DIR = "data"
 VECTORSTORE_DIR = "vectorstore"
@@ -20,7 +24,6 @@ EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 CHUNK_SIZE = 900
 CHUNK_OVERLAP = 150
 FILTER_EXERCISE_CHUNKS = os.getenv("RAG_FILTER_EXERCISE_CHUNKS", "1").strip() != "0"
-HF_LOCAL_FILES_ONLY = os.getenv("HF_LOCAL_FILES_ONLY", "1").strip() != "0"
 
 
 @dataclass
@@ -37,7 +40,7 @@ class IngestSummary:
     vectorstore_dir: str
 
 
-def _clean_text(text: str) -> str:
+def clean_text(text: str) -> str:
     text = text.replace("\r\n", "\n")
     text = re.sub(r"(\w)-\n(\w)", r"\1\2", text)
     lines = [line.strip() for line in text.split("\n")]
@@ -57,7 +60,7 @@ def _load_pdf_pages(pdf_path: Path) -> List[Document]:
         page_index = int(page_doc.metadata.get("page", 0))
         cleaned_pages.append(
             Document(
-                page_content=_clean_text(page_doc.page_content),
+                page_content=clean_text(page_doc.page_content),
                 metadata={
                     "source": source_name,
                     "page": page_index + 1,
@@ -76,7 +79,9 @@ def load_documents(data_dir: str = DATA_DIR) -> List[Document]:
 
     all_pages: List[Document] = []
     for pdf_path in sorted(data_path.glob("*.pdf")):
-        all_pages.extend(_load_pdf_pages(pdf_path))
+        pages = _load_pdf_pages(pdf_path)
+        logger.info("Loaded PDF %s (%d pages)", pdf_path.name, len(pages))
+        all_pages.extend(pages)
     return all_pages
 
 
@@ -97,7 +102,7 @@ def split_documents(
 
     per_page_counts: Dict[str, int] = defaultdict(int)
     for chunk in raw_chunks:
-        if FILTER_EXERCISE_CHUNKS and _is_noise_chunk(chunk.page_content):
+        if FILTER_EXERCISE_CHUNKS and is_noise_chunk(chunk.page_content):
             dropped += 1
             continue
         source = chunk.metadata.get("source", "unknown.pdf")
@@ -110,7 +115,7 @@ def split_documents(
     return chunks, dropped
 
 
-def _is_noise_chunk(text: str) -> bool:
+def is_noise_chunk(text: str) -> bool:
     lower = text.lower()
     option_markers = len(re.findall(r"\b[a-d]\.\s", lower))
     question_marks = text.count("?")
@@ -137,7 +142,7 @@ def _normalize_for_hash(text: str) -> str:
     return normalized
 
 
-def _chunk_fingerprint(chunk: Document) -> str:
+def chunk_fingerprint(chunk: Document) -> str:
     source = str(chunk.metadata.get("source", ""))
     page = str(chunk.metadata.get("page", ""))
     payload = f"{source}|{page}|{_normalize_for_hash(chunk.page_content)}"
@@ -149,7 +154,10 @@ def _load_registry(path: Path) -> Dict[str, Dict[str, str]]:
         return {}
     try:
         return json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "Could not read chunk registry at %s: %s: %s", path, type(exc).__name__, exc
+        )
         return {}
 
 
@@ -157,31 +165,26 @@ def _save_registry(path: Path, registry: Dict[str, Dict[str, str]]) -> None:
     path.write_text(json.dumps(registry, indent=2), encoding="utf-8")
 
 
-def _bootstrap_registry_from_index(output_path: Path) -> Dict[str, Dict[str, str]]:
-    index_pkl = output_path / "index.pkl"
-    if not index_pkl.exists():
+def _bootstrap_registry_from_index(output_path: Path, embeddings) -> Dict[str, Dict[str, str]]:
+    """Rebuild the registry from an existing index without unpickling by hand."""
+    if not (output_path / "index.faiss").exists():
         return {}
-
     try:
-        with index_pkl.open("rb") as handle:
-            docstore, _ = pickle.load(handle)
-    except Exception:
+        # MIN-5: safe -- output_path is the repo/operator-controlled
+        # vectorstore directory (ingest's own output), not user- or
+        # request-supplied input.
+        store = FAISS.load_local(str(output_path), embeddings, allow_dangerous_deserialization=True)
+    except Exception as exc:
+        logger.warning("Could not bootstrap registry from index: %s: %s", type(exc).__name__, exc)
         return {}
-
-    docs = []
-    if hasattr(docstore, "_dict"):
-        docs = list(docstore._dict.values())
-
-    registry: Dict[str, Dict[str, str]] = {}
-    for doc in docs:
-        if not isinstance(doc, Document):
-            continue
-        chunk_hash = _chunk_fingerprint(doc)
-        registry[chunk_hash] = {
-            "chunk_id": str(doc.metadata.get("chunk_id", "")),
-            "source": str(doc.metadata.get("source", "")),
-            "page": str(doc.metadata.get("page", "")),
-        }
+    registry = {}
+    for doc in getattr(store.docstore, "_dict", {}).values():
+        if isinstance(doc, Document):
+            registry[chunk_fingerprint(doc)] = {
+                "chunk_id": str(doc.metadata.get("chunk_id", "")),
+                "source": str(doc.metadata.get("source", "")),
+                "page": str(doc.metadata.get("page", "")),
+            }
     return registry
 
 
@@ -191,7 +194,7 @@ def _split_new_chunks(
     new_chunks: List[Document] = []
     skipped_existing = 0
     for chunk in chunks:
-        fingerprint = _chunk_fingerprint(chunk)
+        fingerprint = chunk_fingerprint(chunk)
         if fingerprint in registry:
             skipped_existing += 1
             continue
@@ -209,24 +212,23 @@ def create_or_update_vectorstore(
     output_path.mkdir(parents=True, exist_ok=True)
     registry_path = output_path / "chunk_registry.json"
 
+    embeddings = build_embeddings(get_settings())
+
     registry = {} if rebuild else _load_registry(registry_path)
     if not rebuild and not registry:
-        registry = _bootstrap_registry_from_index(output_path)
+        registry = _bootstrap_registry_from_index(output_path, embeddings)
         if registry:
             _save_registry(registry_path, registry)
     new_chunks, skipped_existing = _split_new_chunks(all_chunks, registry)
     if not new_chunks and not rebuild:
         return 0, skipped_existing
 
-    embeddings = SentenceTransformerEmbeddings(
-        model_name=EMBEDDING_MODEL,
-        model_kwargs={"local_files_only": HF_LOCAL_FILES_ONLY},
-    )
-
     index_file = output_path / "index.faiss"
     if rebuild or not index_file.exists():
         store = FAISS.from_documents(new_chunks, embeddings)
     else:
+        # MIN-5: safe -- output_path is the repo/operator-controlled
+        # vectorstore directory, not user- or request-supplied input.
         store = FAISS.load_local(
             str(output_path),
             embeddings,
@@ -253,10 +255,22 @@ def _write_manifest(summary: IngestSummary) -> None:
 
 
 def ingest_pipeline(
-    data_dir: str = DATA_DIR,
-    vectorstore_dir: str = VECTORSTORE_DIR,
+    data_dir: Optional[str] = None,
+    vectorstore_dir: Optional[str] = None,
     rebuild: bool = False,
 ) -> IngestSummary:
+    # MIN-2/IMP-5: default from the real Settings, not the module-level
+    # DATA_DIR/VECTORSTORE_DIR constants. Those constants ignore
+    # RAG_DATA_DIR/RAG_VECTORSTORE_DIR, so an ingest run with a configured
+    # vectorstore dir would silently write to ./vectorstore while the
+    # engine reads from the configured path -- a split-brain where
+    # /ingest "succeeds" but the running engine never sees the new index.
+    settings = get_settings()
+    if data_dir is None:
+        data_dir = settings.data_dir
+    if vectorstore_dir is None:
+        vectorstore_dir = settings.vectorstore_dir
+
     pages = load_documents(data_dir=data_dir)
     if not pages:
         raise ValueError(f"No PDF pages loaded from '{data_dir}'.")
@@ -284,6 +298,14 @@ def ingest_pipeline(
         vectorstore_dir=vectorstore_dir,
     )
     _write_manifest(summary)
+    logger.info(
+        "Ingest complete: files=%d pages=%d chunks_added=%d chunks_skipped_existing=%d chunks_dropped=%d",
+        files_indexed,
+        len(pages),
+        chunks_added,
+        chunks_skipped,
+        dropped_chunks,
+    )
     return summary
 
 

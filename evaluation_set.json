@@ -1,202 +1,874 @@
 [
   {
     "question": "What is QNH in altimetry?",
-    "type": "factual"
+    "type": "factual",
+    "expected_answer": "QNH is QFE converted to mean sea level using the ISA; with QNH set, the altimeter reads the aerodrome elevation when the aircraft is on the ground and approximately the aircraft's altitude when airborne.",
+    "expected_sources": [
+      {
+        "source": "Meteorology full book.pdf",
+        "page": 135
+      }
+    ],
+    "key_facts": [
+      "mean sea level",
+      "aerodrome elevation on the ground",
+      "converted from qfe"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What is QFE in altimetry?",
-    "type": "factual"
+    "type": "factual",
+    "expected_answer": "QFE is the atmospheric pressure measured at the aerodrome datum; with QFE set, the altimeter reads zero when the aircraft is on the aerodrome surface and approximate height above the aerodrome when airborne.",
+    "expected_sources": [
+      {
+        "source": "Meteorology full book.pdf",
+        "page": 135
+      },
+      {
+        "source": "Meteorology full book.pdf",
+        "page": 27
+      }
+    ],
+    "key_facts": [
+      "aerodrome datum",
+      "reads zero on the ground",
+      "height above the aerodrome"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What does ISA stand for in aviation meteorology?",
-    "type": "factual"
+    "type": "factual",
+    "expected_answer": "ISA stands for International Standard Atmosphere, the ICAO-defined average atmosphere used as a common datum for calibrating aircraft pressure instruments and for aircraft design and testing.",
+    "expected_sources": [
+      {
+        "source": "Meteorology full book.pdf",
+        "page": 12
+      }
+    ],
+    "key_facts": [
+      "international standard atmosphere",
+      "calibration of pressure instruments",
+      "average atmosphere"
+    ],
+    "unanswerable": false
   },
   {
     "question": "How is dew point defined?",
-    "type": "factual"
+    "type": "factual",
+    "expected_answer": "Dew point is the temperature to which air must be cooled, at constant pressure, for saturation to occur (i.e. for the air to become fully saturated with water vapour and condensation to begin).",
+    "expected_sources": [
+      {
+        "source": "Meteorology full book.pdf",
+        "page": 87
+      }
+    ],
+    "key_facts": [
+      "temperature to which air must be cooled",
+      "constant pressure",
+      "for saturation to occur"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What is a cold front?",
-    "type": "factual"
+    "type": "factual",
+    "expected_answer": "A cold front is a front along which cold air is replacing warm air; its slope is roughly 1:50 to 1:80, and heap (cumuliform) clouds tend to form in the unstable air associated with it.",
+    "expected_sources": [
+      {
+        "source": "Meteorology full book.pdf",
+        "page": 317
+      },
+      {
+        "source": "Meteorology full book.pdf",
+        "page": 225
+      }
+    ],
+    "key_facts": [
+      "cold air replacing warm air",
+      "heap clouds form",
+      "slope of the front"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What does VOR stand for?",
-    "type": "factual"
+    "type": "factual",
+    "expected_answer": "VOR stands for VHF Omni-directional Range, a short-range radio navigation aid adopted by ICAO in 1960 that provides bearing information, usually aligned to magnetic north at the VOR station.",
+    "expected_sources": [
+      {
+        "source": "11-radio-navigation-2014.pdf",
+        "page": 117
+      }
+    ],
+    "key_facts": [
+      "vhf omni-directional range",
+      "bearing information",
+      "aligned with magnetic north"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What does DME primarily measure?",
-    "type": "factual"
+    "type": "factual",
+    "expected_answer": "DME (Distance Measuring Equipment) is a secondary radar system that measures an aircraft's slant range (distance) from a ground station, often co-located with a VOR to give a combined bearing-and-range fix.",
+    "expected_sources": [
+      {
+        "source": "11-radio-navigation-2014.pdf",
+        "page": 249
+      }
+    ],
+    "key_facts": [
+      "slant range from a ground station",
+      "secondary radar system",
+      "co-sited with vor"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What is the function of the altimeter subscale setting?",
-    "type": "factual"
+    "type": "factual",
+    "expected_answer": "The altimeter subscale setting lets the pilot select a reference pressure (QFE, QNH, or the standard 1013.2 hPa) so the altimeter reads height above the airfield, elevation above mean sea level, or pressure altitude accordingly, compensating for changes in atmospheric pressure.",
+    "expected_sources": [
+      {
+        "source": "6-mass-and-balance-and-performance-2014.pdf",
+        "page": 144
+      },
+      {
+        "source": "Meteorology full book.pdf",
+        "page": 134
+      }
+    ],
+    "key_facts": [
+      "qfe qnh or standard 1013",
+      "compensates for pressure changes",
+      "reference pressure setting"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What is true airspeed (TAS)?",
-    "type": "factual"
+    "type": "factual",
+    "expected_answer": "True airspeed (TAS) is equivalent airspeed corrected for density error, the true speed of the aircraft relative to the air it is flying through; for a constant equivalent airspeed, TAS increases as air density falls.",
+    "expected_sources": [
+      {
+        "source": "6-mass-and-balance-and-performance-2014.pdf",
+        "page": 244
+      }
+    ],
+    "key_facts": [
+      "equivalent airspeed corrected for density",
+      "true speed relative to the air",
+      "increases as density falls"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What is indicated airspeed (IAS)?",
-    "type": "factual"
+    "type": "factual",
+    "expected_answer": "Indicated airspeed (IAS) is the direct reading shown on the airspeed indicator, derived from pitot and static pressure, before instrument, position, or compressibility corrections are applied.",
+    "expected_sources": [
+      {
+        "source": "Instruments.pdf",
+        "page": 50
+      },
+      {
+        "source": "6-mass-and-balance-and-performance-2014.pdf",
+        "page": 243
+      }
+    ],
+    "key_facts": [
+      "direct reading on the airspeed indicator",
+      "before corrections are applied",
+      "derived from pitot and static pressure"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What is a flight level?",
-    "type": "factual"
+    "type": "factual",
+    "expected_answer": "A Flight Level is the aircraft's height above the 1013.25 hPa pressure datum, expressed in hundreds of feet; when 1013.25 hPa is set on the altimeter subscale the reading is pressure altitude, and flight levels occur at 500 ft intervals (e.g. FL360 = 36,000 ft).",
+    "expected_sources": [
+      {
+        "source": "Instruments.pdf",
+        "page": 70
+      }
+    ],
+    "key_facts": [
+      "height above 1013.25 hpa",
+      "expressed in hundreds of feet",
+      "500 ft intervals"
+    ],
+    "unanswerable": false
   },
   {
     "question": "Which publication contains permanent aeronautical information for pilots?",
-    "type": "factual"
+    "type": "factual",
+    "expected_answer": "The Aeronautical Information Publication (AIP) is the publication, issued by or with the authority of a State, containing aeronautical information of a lasting character essential to air navigation.",
+    "expected_sources": [
+      {
+        "source": "7-Flight-Planning-and-Monitoring-2014.pdf",
+        "page": 9
+      }
+    ],
+    "key_facts": [
+      "aeronautical information publication",
+      "lasting character",
+      "issued by the state authority"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What is the purpose of a NOTAM?",
-    "type": "factual"
+    "type": "factual",
+    "expected_answer": "A NOTAM is issued promptly to distribute information of a temporary nature and short duration, or operationally significant permanent changes made at short notice, that could not be included in the AIP in time.",
+    "expected_sources": [
+      {
+        "source": "7-Flight-Planning-and-Monitoring-2014.pdf",
+        "page": 9
+      }
+    ],
+    "key_facts": [
+      "temporary nature and short duration",
+      "operationally significant changes",
+      "issued promptly"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What is the function of the pitot tube?",
-    "type": "factual"
+    "type": "factual",
+    "expected_answer": "The pitot tube collects total (pitot) pressure, static plus dynamic pressure, from the oncoming airflow and feeds it to the ASI and Machmeter so that dynamic pressure and hence airspeed can be derived.",
+    "expected_sources": [
+      {
+        "source": "Instruments.pdf",
+        "page": 19
+      },
+      {
+        "source": "Instruments.pdf",
+        "page": 20
+      }
+    ],
+    "key_facts": [
+      "collects total pitot pressure",
+      "static plus dynamic pressure",
+      "feeds the asi and machmeter"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What is static pressure in relation to aircraft instruments?",
-    "type": "factual"
+    "type": "factual",
+    "expected_answer": "Static pressure is the ambient atmospheric pressure sensed by holes or slots in a static head or vent that do not face into the airflow, and it is fed via the static line to the pressure instruments such as the altimeter, ASI, and VSI.",
+    "expected_sources": [
+      {
+        "source": "Instruments.pdf",
+        "page": 20
+      },
+      {
+        "source": "Instruments.pdf",
+        "page": 19
+      }
+    ],
+    "key_facts": [
+      "ambient atmospheric pressure",
+      "sensed by a static head or vent",
+      "fed to the pressure instruments"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What does RAIM stand for in GNSS operations?",
-    "type": "factual"
+    "type": "factual",
+    "expected_answer": "RAIM stands for Receiver Autonomous Integrity Monitoring: using a fifth satellite (SV), the receiver compares position solutions from different SV combinations to detect and deselect an SV giving erroneous data; the CAA recommends a minimum of 6 SVs be available so integrity monitoring continues even after one SV is deselected.",
+    "expected_sources": [
+      {
+        "source": "11-radio-navigation-2014.pdf",
+        "page": 325
+      }
+    ],
+    "key_facts": [
+      "receiver autonomous integrity monitoring",
+      "detect an erroneous satellite",
+      "minimum of 6 satellites recommended"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What is the point of no return (PNR) in flight planning?",
-    "type": "factual"
+    "type": "factual",
+    "expected_answer": "The Point of No Return (PNR), now often called the Point of Safe Return (PSR), is the furthest point along a planned route from which an aircraft can still fly back to the departure airfield or its alternate within the aircraft's safe endurance.",
+    "expected_sources": [
+      {
+        "source": "7-Flight-Planning-and-Monitoring-2014.pdf",
+        "page": 265
+      }
+    ],
+    "key_facts": [
+      "furthest point to return to departure",
+      "within safe endurance",
+      "point of safe return"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What is contingency fuel?",
-    "type": "factual"
+    "type": "factual",
+    "expected_answer": "Contingency fuel is fuel carried in addition to trip fuel to cover unforeseen eventualities, such as deviations from expected fuel consumption, forecast weather, or planned routing and levels, typically the higher of 5% of trip fuel or an amount equivalent to 5 minutes holding at 1500 ft over the destination.",
+    "expected_sources": [
+      {
+        "source": "6-mass-and-balance-and-performance-2014.pdf",
+        "page": 71
+      },
+      {
+        "source": "7-Flight-Planning-and-Monitoring-2014.pdf",
+        "page": 32
+      },
+      {
+        "source": "7-Flight-Planning-and-Monitoring-2014.pdf",
+        "page": 33
+      }
+    ],
+    "key_facts": [
+      "additional to trip fuel",
+      "unforeseen eventualities",
+      "5 percent of trip fuel"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What is the center of gravity in mass and balance?",
-    "type": "factual"
+    "type": "factual",
+    "expected_answer": "The centre of gravity (CG) is the point through which the total weight of the aircraft is said to act vertically downward; it is the point of balance and must remain within manufacturer-set forward and aft limits at all times.",
+    "expected_sources": [
+      {
+        "source": "6-mass-and-balance-and-performance-2014.pdf",
+        "page": 35
+      }
+    ],
+    "key_facts": [
+      "point through which total weight acts",
+      "point of balance",
+      "within forward and aft limits"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What is load factor in flight mechanics?",
-    "type": "factual"
+    "type": "factual",
+    "expected_answer": "Load factor is the ratio of a specified (applied) load to the total weight of the aircraft.",
+    "expected_sources": [
+      {
+        "source": "6-mass-and-balance-and-performance-2014.pdf",
+        "page": 137
+      }
+    ],
+    "key_facts": [
+      "ratio of load to total weight",
+      "specified load",
+      "aircraft weight"
+    ],
+    "unanswerable": false
   },
   {
     "question": "If the pitot tube is blocked but the static source remains clear, how does the airspeed indicator behave?",
-    "type": "applied"
+    "type": "applied",
+    "expected_answer": "With a blocked pitot head and a clear static source, the ASI reading generally freezes at the last true reading in level flight; during a climb the IAS will falsely increase, and during a descent it will falsely decrease, because the trapped pitot pressure stays constant while the surrounding static pressure changes.",
+    "expected_sources": [
+      {
+        "source": "Instruments.pdf",
+        "page": 51
+      }
+    ],
+    "key_facts": [
+      "asi reading freezes in level flight",
+      "false increase in a climb",
+      "false decrease in a descent"
+    ],
+    "unanswerable": false
   },
   {
     "question": "If the static source is blocked and the pitot source is clear, what errors appear on the altimeter and VSI?",
-    "type": "applied"
+    "type": "applied",
+    "expected_answer": "With the static source blocked and pitot clear, the altimeter freezes at the height it read when the blockage occurred and will not register further change: if the aircraft climbs, the altimeter under-reads (shows lower than actual height), and if it descends, the altimeter over-reads (shows higher than actual height); the error grows the further the aircraft moves from the blockage height.",
+    "expected_sources": [
+      {
+        "source": "Instruments.pdf",
+        "page": 71
+      }
+    ],
+    "key_facts": [
+      "altimeter does not register change in height",
+      "under reads while climbing",
+      "over reads while descending"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What is the altimetry risk when flying from high pressure to low pressure without resetting the subscale?",
-    "type": "applied"
+    "type": "applied",
+    "expected_answer": "Flying from high pressure into low pressure without resetting the altimeter subscale causes the altimeter to over-read: true altitude becomes lower than the altimeter indicates, risking the aircraft flying dangerously lower than the indicated altitude suggests.",
+    "expected_sources": [
+      {
+        "source": "Meteorology full book.pdf",
+        "page": 134
+      }
+    ],
+    "key_facts": [
+      "true altitude decreases",
+      "altimeter over-reads",
+      "risk of flying lower than indicated"
+    ],
+    "unanswerable": false
   },
   {
     "question": "How does a higher-than-ISA temperature affect takeoff distance planning?",
-    "type": "applied"
+    "type": "applied",
+    "expected_answer": "Higher-than-ISA temperature reduces air density, which increases takeoff distance in three ways: reduced density lowers engine thrust and power so acceleration is less; it raises the true airspeed needed for a given indicated take-off safety speed, requiring more distance to reach it; and with less thrust available the initial climb angle is reduced, requiring a longer horizontal distance to reach screen height.",
+    "expected_sources": [
+      {
+        "source": "6-mass-and-balance-and-performance-2014.pdf",
+        "page": 159
+      }
+    ],
+    "key_facts": [
+      "reduced density lowers engine thrust",
+      "more distance to reach required true airspeed",
+      "reduced angle of initial climb"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What handling consequence is expected if the aircraft center of gravity moves beyond the aft limit?",
-    "type": "applied"
+    "type": "applied",
+    "expected_answer": "With the CG outside the aft limit, longitudinal stability is reduced and, if far enough aft, the aircraft can become very unstable; stick forces in pitch become light, risking overstress by applying excessive g; recovery from a spin may be more difficult because a flat spin is more likely to develop; and range and endurance will probably decrease due to the extra drag from the extreme manoeuvres needed to control the aircraft.",
+    "expected_sources": [
+      {
+        "source": "6-mass-and-balance-and-performance-2014.pdf",
+        "page": 34
+      }
+    ],
+    "key_facts": [
+      "longitudinal stability is reduced",
+      "flat spin more likely",
+      "light stick forces risk overstress"
+    ],
+    "unanswerable": false
   },
   {
     "question": "How should fuel planning change when destination weather is close to alternate minima?",
-    "type": "applied"
+    "type": "applied",
+    "expected_answer": null,
+    "expected_sources": [],
+    "key_facts": [],
+    "unanswerable": true
   },
   {
     "question": "How should a pilot apply transition altitude and standard setting during climb?",
-    "type": "applied"
+    "type": "applied",
+    "expected_answer": "During the climb a pilot flies on QNH until reaching the transition altitude, at which point the altimeter subscale is reset to the standard pressure setting of 1013.25 hPa; the difference between 1013.25 hPa and QNH produces a barometric height change of about 30 ft per hPa.",
+    "expected_sources": [
+      {
+        "source": "7-Flight-Planning-and-Monitoring-2014.pdf",
+        "page": 140
+      }
+    ],
+    "key_facts": [
+      "reset subscale to 1013.25 hpa at transition altitude",
+      "30 feet per hectopascal",
+      "qnh used below transition altitude"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What immediate planning impact does a strong forecast headwind have on PNR calculations?",
-    "type": "applied"
+    "type": "applied",
+    "expected_answer": "Any wind component, whether head or tail, reduces the distance to the point of safe return (PNR/PSR) compared with still air, and a stronger wind component produces a greater reduction in that distance; a head and tail wind of the same value reduce the PNR distance by the same amount.",
+    "expected_sources": [
+      {
+        "source": "7-Flight-Planning-and-Monitoring-2014.pdf",
+        "page": 267
+      }
+    ],
+    "key_facts": [
+      "wind component reduces the psr distance",
+      "greater wind gives greater reduction",
+      "head or tail wind reduce it equally"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What is the correct action if visual reference is not established at MDA or DA?",
-    "type": "applied"
+    "type": "applied",
+    "expected_answer": "If the required visual reference has not been established by Decision Altitude/Height (DA/H) or Minimum Descent Altitude (MDA), the pilot must initiate a missed approach.",
+    "expected_sources": [
+      {
+        "source": "7-Flight-Planning-and-Monitoring-2014.pdf",
+        "page": 153
+      },
+      {
+        "source": "7-Flight-Planning-and-Monitoring-2014.pdf",
+        "page": 178
+      }
+    ],
+    "key_facts": [
+      "initiate a missed approach",
+      "visual reference not established",
+      "decision altitude or mda"
+    ],
+    "unanswerable": false
   },
   {
     "question": "How does a significant tailwind on final approach affect landing distance requirements?",
-    "type": "applied"
+    "type": "applied",
+    "expected_answer": "A tailwind increases the aircraft's ground speed for a given indicated airspeed, so the distance needed to bring the aircraft to rest after landing is increased; performance calculations apply only 50% of the headwind component but 150% of the tailwind component as a safety margin.",
+    "expected_sources": [
+      {
+        "source": "6-mass-and-balance-and-performance-2014.pdf",
+        "page": 286
+      },
+      {
+        "source": "6-mass-and-balance-and-performance-2014.pdf",
+        "page": 479
+      }
+    ],
+    "key_facts": [
+      "increases ground speed and landing distance",
+      "150 percent of tailwind component applied",
+      "50 percent headwind credit"
+    ],
+    "unanswerable": false
   },
   {
     "question": "If a NOTAM closes your planned destination runway, what should be updated in the flight plan?",
-    "type": "applied"
+    "type": "applied",
+    "expected_answer": null,
+    "expected_sources": [],
+    "key_facts": [],
+    "unanswerable": true
   },
   {
     "question": "When a VOR radial indication and DME distance trend are inconsistent, what navigation cross-check should be performed?",
-    "type": "applied"
+    "type": "applied",
+    "expected_answer": null,
+    "expected_sources": [],
+    "key_facts": [],
+    "unanswerable": true
   },
   {
     "question": "How should pressure altitude be adjusted when QNH differs from standard pressure?",
-    "type": "applied"
+    "type": "applied",
+    "expected_answer": "Pressure altitude is obtained by setting the altimeter subscale to the standard 1013.25 hPa setting rather than QNH; because the difference between 1013.25 hPa and the actual QNH causes a barometric error of about 30 ft per hPa, the altimeter reading changes accordingly when switching between QNH and the standard setting.",
+    "expected_sources": [
+      {
+        "source": "7-Flight-Planning-and-Monitoring-2014.pdf",
+        "page": 140
+      }
+    ],
+    "key_facts": [
+      "set subscale to 1013.25 hpa",
+      "30 feet per hectopascal difference",
+      "barometric error from qnh difference"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What preflight decision is required when expected icing exists and pitot heat is inoperative?",
-    "type": "applied"
+    "type": "applied",
+    "expected_answer": null,
+    "expected_sources": [],
+    "key_facts": [],
+    "unanswerable": true
   },
   {
     "question": "If cumulative delays reduce your fuel reserve near legal minimums, what operational decision should be taken?",
-    "type": "applied"
+    "type": "applied",
+    "expected_answer": "If an in-flight fuel check shows that expected fuel remaining on arrival would be less than the required alternate fuel plus final reserve fuel, the commander must weigh traffic and operational conditions at the destination, along the diversion route, and at the destination alternate, when deciding whether to proceed to the destination or divert, so as to land with not less than final reserve fuel.",
+    "expected_sources": [
+      {
+        "source": "7-Flight-Planning-and-Monitoring-2014.pdf",
+        "page": 36
+      }
+    ],
+    "key_facts": [
+      "expected fuel less than alternate plus final reserve",
+      "decide to proceed or divert",
+      "land with not less than final reserve fuel"
+    ],
+    "unanswerable": false
   },
   {
     "question": "How should a pilot react to cumulonimbus cells building directly on the planned route?",
-    "type": "applied"
+    "type": "applied",
+    "expected_answer": "A pilot should avoid cumulonimbus cells rather than fly over or beneath them: the corpus recommends avoiding flying over the top of a thunderstorm whenever possible, avoiding overflying small convective cells close to large storms, and not flying beneath cumulonimbus cloud because of turbulence, hail, icing, lightning, and windshear hazards.",
+    "expected_sources": [
+      {
+        "source": "Meteorology full book.pdf",
+        "page": 258
+      }
+    ],
+    "key_facts": [
+      "avoid flying over or under cumulonimbus",
+      "turbulence hail lightning windshear hazards",
+      "avoid overflying small convective cells"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What communication and clearance considerations apply before entering controlled Class C airspace?",
-    "type": "applied"
+    "type": "applied",
+    "expected_answer": null,
+    "expected_sources": [],
+    "key_facts": [],
+    "unanswerable": true
   },
   {
     "question": "How does loss of one GNSS satellite affect 3D position solution capability?",
-    "type": "applied"
+    "type": "applied",
+    "expected_answer": "A GPS/GNSS receiver normally uses four satellites (SVs) to construct a three-dimensional (3D) fix from their pseudo-ranges; if only three SVs are available, some receivers can still produce a 3D position by using an altitude input to simulate a fourth SV at the centre of the earth, but the resulting position is less accurate than a full four-satellite fix.",
+    "expected_sources": [
+      {
+        "source": "11-radio-navigation-2014.pdf",
+        "page": 320
+      },
+      {
+        "source": "11-radio-navigation-2014.pdf",
+        "page": 322
+      }
+    ],
+    "key_facts": [
+      "four satellites needed for a 3d fix",
+      "altitude input simulates a fourth satellite",
+      "less accurate than a four satellite fix"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What is the operational implication if calculated takeoff mass exceeds performance-limited mass?",
-    "type": "applied"
+    "type": "applied",
+    "expected_answer": "If the calculated take-off mass exceeds the performance-limited mass (the lowest of the field length, climb, tyre speed, and brake energy limits), the aircraft cannot depart at that mass; mass must be reduced so it does not exceed the performance-limited mass, which is then compared with the maximum structural mass to give the regulated take-off mass.",
+    "expected_sources": [
+      {
+        "source": "6-mass-and-balance-and-performance-2014.pdf",
+        "page": 404
+      }
+    ],
+    "key_facts": [
+      "mass must be reduced to performance limited mass",
+      "lowest of field climb tyre brake limits",
+      "regulated take-off mass"
+    ],
+    "unanswerable": false
   },
   {
     "question": "If destination weather drops below landing minima en route, how should alternate strategy be applied?",
-    "type": "applied"
+    "type": "applied",
+    "expected_answer": null,
+    "expected_sources": [],
+    "key_facts": [],
+    "unanswerable": true
   },
   {
     "question": "Why does true airspeed increase with altitude when indicated airspeed is held constant?",
-    "type": "reasoning"
+    "type": "reasoning",
+    "expected_answer": "Because air density decreases with altitude, holding indicated or calibrated airspeed constant as altitude increases means true airspeed must increase to produce the same dynamic pressure in the thinner air.",
+    "expected_sources": [
+      {
+        "source": "6-mass-and-balance-and-performance-2014.pdf",
+        "page": 247
+      }
+    ],
+    "key_facts": [
+      "density falls with altitude",
+      "true airspeed increases for constant ias",
+      "same dynamic pressure in thinner air"
+    ],
+    "unanswerable": false
   },
   {
     "question": "Why is a small temperature-dew-point spread associated with greater fog risk?",
-    "type": "reasoning"
+    "type": "reasoning",
+    "expected_answer": "A small temperature-dew point spread means the air needs only a little cooling to reach saturation at its dew point, so fog forms readily; both radiation fog and advection fog form when air is cooled to below its dew point, which happens fastest when the spread is already small.",
+    "expected_sources": [
+      {
+        "source": "Meteorology full book.pdf",
+        "page": 273
+      },
+      {
+        "source": "Meteorology full book.pdf",
+        "page": 276
+      }
+    ],
+    "key_facts": [
+      "little cooling needed to reach saturation",
+      "air cooled below dew point",
+      "small spread makes fog more likely"
+    ],
+    "unanswerable": false
   },
   {
     "question": "Why can an aft center of gravity improve cruise efficiency but reduce longitudinal stability?",
-    "type": "reasoning"
+    "type": "reasoning",
+    "expected_answer": "Moving the CG aft reduces the download the tailplane must produce to balance the aircraft, which reduces the tailplane's drag contribution and so improves range and endurance in the cruise; however, an aircraft with its CG outside the aft limit has reduced longitudinal stability, can become very unstable if far enough aft, and is more prone to a flat spin developing, which is why aft CG trades cruise efficiency against stability.",
+    "expected_sources": [
+      {
+        "source": "6-mass-and-balance-and-performance-2014.pdf",
+        "page": 240
+      },
+      {
+        "source": "6-mass-and-balance-and-performance-2014.pdf",
+        "page": 34
+      }
+    ],
+    "key_facts": [
+      "less tailplane download reduces drag",
+      "improves range in the cruise",
+      "longitudinal stability is reduced"
+    ],
+    "unanswerable": false
   },
   {
     "question": "Why does SSR generally provide better identification and tracking capability than primary radar?",
-    "type": "reasoning"
+    "type": "reasoning",
+    "expected_answer": "SSR gives better identification and tracking than primary radar because it requires much less transmitter power, is not dependent on an aircraft's echo area or aspect, gives clutter-free responses since it does not rely on reflected pulses, and positively identifies each aircraft by displaying its code and call sign, whereas primary radar can only give range and bearing without positive identification.",
+    "expected_sources": [
+      {
+        "source": "11-radio-navigation-2014.pdf",
+        "page": 233
+      }
+    ],
+    "key_facts": [
+      "less transmitter power required",
+      "positive aircraft identification with code and callsign",
+      "not dependent on aircraft echo area"
+    ],
+    "unanswerable": false
   },
   {
     "question": "How do pressure-gradient force and Coriolis force jointly determine large-scale wind direction?",
-    "type": "reasoning"
+    "type": "reasoning",
+    "expected_answer": "The pressure gradient force drives air from high to low pressure and determines wind speed, being stronger where isobars are closely spaced, while the Coriolis force, caused by the Earth's rotation, deflects the moving air; at equilibrium (the geostrophic wind) the two forces balance and the resulting wind blows parallel to the isobars, with low pressure to the left of the wind in the Northern Hemisphere (Buys Ballot's Law).",
+    "expected_sources": [
+      {
+        "source": "Meteorology full book.pdf",
+        "page": 158
+      },
+      {
+        "source": "Meteorology full book.pdf",
+        "page": 159
+      },
+      {
+        "source": "Meteorology full book.pdf",
+        "page": 160
+      }
+    ],
+    "key_facts": [
+      "pressure gradient force drives wind speed",
+      "coriolis force deflects the air",
+      "low pressure to the left in northern hemisphere"
+    ],
+    "unanswerable": false
   },
   {
     "question": "Why are transition altitude and transition level procedures necessary in multi-aircraft operations?",
-    "type": "reasoning"
+    "type": "reasoning",
+    "expected_answer": "Transition altitude and transition level exist so aircraft use a common pressure reference at a given phase: below the transition altitude aircraft fly on QNH, and above the transition level all aircraft use the standard 1013.25 hPa setting; the transition layer separates the two so aircraft change altimeter reference at consistent points, helping maintain reliable vertical separation among multiple aircraft.",
+    "expected_sources": [
+      {
+        "source": "7-Flight-Planning-and-Monitoring-2014.pdf",
+        "page": 154
+      },
+      {
+        "source": "Meteorology full book.pdf",
+        "page": 142
+      }
+    ],
+    "key_facts": [
+      "common pressure reference for all aircraft",
+      "qnh below standard 1013 above",
+      "consistent vertical separation"
+    ],
+    "unanswerable": false
   },
   {
     "question": "What is the trade-off between carrying extra fuel and carrying payload in commercial planning?",
-    "type": "reasoning"
+    "type": "reasoning",
+    "expected_answer": "Extra fuel and payload trade off against each other within a fixed total mass: increasing fuel for more range requires reducing payload correspondingly, and once the tanks are full, further range increases require removing payload entirely; this trade-off is typically decided at aircraft purchase and revisited during flight planning.",
+    "expected_sources": [
+      {
+        "source": "6-mass-and-balance-and-performance-2014.pdf",
+        "page": 259
+      }
+    ],
+    "key_facts": [
+      "increasing fuel reduces payload",
+      "full tanks limit further range gains",
+      "decided during flight planning"
+    ],
+    "unanswerable": false
   },
   {
     "question": "Why can a temperature inversion degrade visibility and affect low-level operations?",
-    "type": "reasoning"
+    "type": "reasoning",
+    "expected_answer": "Poor visibility is usually associated with stable conditions, including inversions (along with anticyclones, cols, and light winds), because a temperature inversion suppresses vertical mixing near the surface, trapping moisture, smoke, and other particles in a shallow layer and favouring the formation of fog, mist, or haze that reduces visibility for low-level operations.",
+    "expected_sources": [
+      {
+        "source": "Meteorology full book.pdf",
+        "page": 273
+      },
+      {
+        "source": "Meteorology full book.pdf",
+        "page": 274
+      }
+    ],
+    "key_facts": [
+      "poor visibility associated with inversions",
+      "stable conditions",
+      "fog forms below an inversion"
+    ],
+    "unanswerable": false
   },
   {
     "question": "Why might Mercator and Lambert charts produce different practical advantages for route planning?",
-    "type": "reasoning"
+    "type": "reasoning",
+    "expected_answer": "Mercator charts give straight rhumb lines and constant compass-steering usability but distort great circles and true scale, while Lambert conformal charts show great circles as near-straight lines, useful with computer-driven great-circle navigation, but their non-rectangular graticule makes plotting positions and using NDB position lines, which require meridian transfer, less simple than on a Mercator.",
+    "expected_sources": [
+      {
+        "source": "10-General-Navigation-2014 (1).pdf",
+        "page": 341
+      },
+      {
+        "source": "10-General-Navigation-2014 (1).pdf",
+        "page": 362
+      }
+    ],
+    "key_facts": [
+      "mercator gives straight rhumb lines",
+      "lambert shows great circles nearly straight",
+      "lambert plotting requires meridian transfer"
+    ],
+    "unanswerable": false
   },
   {
     "question": "When reserves are shrinking and winds are stronger than forecast, why can an early diversion be safer than continuing?",
-    "type": "reasoning"
+    "type": "reasoning",
+    "expected_answer": "Stronger-than-forecast winds burn into the planned fuel margin faster than expected, so the longer a pilot continues, the more of the final reserve gets eaten into. The fuel policy requires landing with not less than final reserve fuel, so a commander who diverts while reserves are still adequate keeps that decision available and controlled; continuing and waiting to see how bad things get risks reaching the point where the remaining fuel is no longer enough to divert safely and still land with the required reserve intact.",
+    "expected_sources": [
+      {
+        "source": "7-Flight-Planning-and-Monitoring-2014.pdf",
+        "page": 36
+      },
+      {
+        "source": "7-Flight-Planning-and-Monitoring-2014.pdf",
+        "page": 40
+      }
+    ],
+    "key_facts": [
+      "stronger winds erode the fuel margin faster than planned",
+      "must land with not less than final reserve fuel",
+      "diverting later risks having too little fuel to divert safely"
+    ],
+    "unanswerable": false
   }
 ]
